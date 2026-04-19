@@ -1,0 +1,54 @@
+services:
+  db:
+    image: postgres:15
+    container_name: virtual_fitting_db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: virtual_fitting_backend
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+
+  ai_server:
+    build:
+      context: ./ai_server
+    container_name: virtual_fitting_ai
+    restart: always
+    expose:
+      - "9002"
+    volumes:
+      - ./ai_server/dummy:/app/shared/dummy
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: virtual_fitting_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ai_server/dummy:/usr/share/nginx/html/static:ro
+    depends_on:
+      - backend
+      - ai_server
+
+volumes:
+  postgres_data:

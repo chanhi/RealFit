@@ -1,0 +1,22 @@
+venv/
+__pycache__/
+.idea/
+.env
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+/backend/ai_server/.env
+
+# docker
+*.log
+
+# python cache
+.pytest_cache/
+
+# local database / temp
+storage/input/
+storage/output/
+
+# optional
+node_modules/
