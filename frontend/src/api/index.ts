@@ -27,7 +27,7 @@ function mapCategoryToBackend(frontendCategory: string): string {
 
 /**
  * 1단계: 피팅 작업 생성
- * POST /api/v1/jobs — 사용자 이미지 + 의류 이미지 + 카테고리를 전송하여 Job을 생성한다.
+ * POST /api/v1/jobs - 사용자 이미지 + 의류 이미지 + 카테고리를 전송하여 Job을 생성한다.
  */
 export const createFittingJob = async (
   userImage: File,
@@ -59,7 +59,7 @@ export const createFittingJob = async (
 
 /**
  * 2단계: 작업 상태 폴링
- * GET /api/v1/jobs/{job_id} — 2초 간격으로 상태를 확인하며 COMPLETED 또는 FAILED를 기다린다.
+ * GET /api/v1/jobs/{job_id} - 2초 간격으로 상태를 확인하며 COMPLETED 또는 FAILED를 기다린다.
  */
 export const pollJobStatus = async (
   jobId: string,
@@ -95,23 +95,28 @@ export const pollJobStatus = async (
 
 /**
  * 3단계: 작업 결과 조회
- * GET /api/v1/jobs/{job_id}/result — 완료된 Job의 결과 파일 경로를 조회한다.
+ * GET /api/v1/jobs/{job_id}/result - 완료된 Job의 결과 파일 경로를 조회합니다.
  */
 export const getJobResult = async (jobId: string): Promise<string> => {
   const response = await fetch(`${API_BASE}/api/v1/jobs/${jobId}/result`);
-  if (!response.ok) throw new Error(`Job result fetch failed: ${response.status}`);
+  if (!response.ok) throw new Error(`결과 조회 실패 (${response.status})`);
 
   const result = await response.json();
   const resultPath = result.data.result_image_path;
 
-  if (!resultPath) throw new Error('Result not ready yet');
+  if (!resultPath) throw new Error('결과가 아직 준비되지 않았습니다.');
 
-  // Convert relative path to accessible URL
+  // [중요] 백엔드에서 받은 상대 경로를 실제 접근 가능한 전체 URL로 변환합니다.
+  // 1. 이미 전체 URL(http...)로 온 경우 그대로 사용합니다.
+  // 2. 경로가 /static/으로 시작하면 호스트 주소만 붙입니다.
+  // 3. 파일명만 온 경우(예: result.glb), Nginx 정적 경로(/static/)를 포함하여 조립합니다.
   const fullUrl = resultPath.startsWith('http')
     ? resultPath
-    : `http://localhost/static/${resultPath}`;
+    : resultPath.startsWith('/static/')
+      ? `http://localhost${resultPath}`
+      : `http://localhost/static/${resultPath}`;
 
-  console.log(`--- [API] Job ${jobId} result: ${fullUrl} ---`);
+  console.log(`--- [API] Job ${jobId} 최종 결과 URL: ${fullUrl} ---`);
   return fullUrl;
 };
 
@@ -162,8 +167,8 @@ export const generate3DModel = async (
 };
 
 /**
- * 2D VTON(옷 입히기) 생성 — Job 기반 비동기 파이프라인
- * 1) Job 생성 → 2) 폴링 → 3) 결과 조회
+ * 2D VTON(옷 입히기) 생성 - Job 기반 비동기 파이프라인
+ * 1) Job 생성 -> 2) 폴링 -> 3) 결과 조회
  * 백엔드 연결 실패 시 에러를 던진다.
  */
 export const generateVTONResult = async (

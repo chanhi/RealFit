@@ -30,7 +30,8 @@ async def generate_3d_model(request: GenerateRequest):
         "message": "3D 모델 생성완료.",
         "data" : {
             "job_id": request.job_id,
-            "image_url": "https://v3b.fal.media/files/b/0a96dfa0/zyHFw_wAmIQPeJhX16jDS_tripo_model_855a2675-0348-4c0f-945d-c543433bda99.glb",
+            # "image_url": "https://v3b.fal.media/files/b/0a96dfa0/zyHFw_wAmIQPeJhX16jDS_tripo_model_855a2675-0348-4c0f-945d-c543433bda99.glb",
+            "image_url": "result.glb"
         }
     }
 
