@@ -5,6 +5,16 @@ import { getSizeRecommendation } from '../../api'
 export const SculptPanel: React.FC = () => {
   const { modelUrl, bodyMeasurements, setActiveTool, sculptModifiers, setSculptModifier, resetSculptModifiers } = useFittingStore()
 
+  const measurements = bodyMeasurements || {
+    height_cm: 175.0,
+    model_height_unit: 1.82,
+    scale_factor: 175.0 / 1.82,
+    shoulder_width_cm: 45.0,
+    chest_width_cm: 30.5,
+    waist_width_cm: 26.0,
+    hip_width_cm: 33.1
+  };
+
   return (
     <div className="flex flex-col h-full p-6 animate-in fade-in slide-in-from-left-4 duration-300 text-gray-900 dark:text-zinc-100 transition-colors">
       <div className="flex items-center justify-between mb-1">
@@ -19,7 +29,7 @@ export const SculptPanel: React.FC = () => {
       </div>
       <p className="text-sm text-gray-400 dark:text-zinc-500 mb-8">내 아바타에서 AI가 추출한 신체 상세 치수입니다.</p>
 
-      {!modelUrl || !bodyMeasurements ? (
+      {!modelUrl ? (
         <div className="mt-10 py-16 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-500 transition-colors">
           <span className="text-4xl mb-3 grayscale opacity-50">📏</span>
           <p className="text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-2">No Data Available</p>
@@ -39,14 +49,14 @@ export const SculptPanel: React.FC = () => {
             <div>
               <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-1">Base Height</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold">{(bodyMeasurements.height_cm * sculptModifiers.height).toFixed(1)}</span>
+                <span className="text-2xl font-bold">{(measurements.height_cm * sculptModifiers.height).toFixed(1)}</span>
                 <span className="text-xs text-gray-400 dark:text-zinc-500">cm</span>
               </div>
             </div>
             <div className="h-10 w-px bg-gray-700 dark:bg-zinc-300"></div>
             <div className="text-right">
               <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-1">Scale Factor</p>
-              <span className="text-sm font-mono font-bold dark:text-zinc-900">{bodyMeasurements.scale_factor.toFixed(2)}x</span>
+              <span className="text-sm font-mono font-bold dark:text-zinc-900">{measurements.scale_factor.toFixed(2)}x</span>
             </div>
           </div>
 
@@ -106,7 +116,7 @@ export const SculptPanel: React.FC = () => {
           
           <MeasurementItem 
             label="Shoulder Width" 
-            value={bodyMeasurements.shoulder_width_cm * sculptModifiers.width} 
+            value={measurements.shoulder_width_cm * sculptModifiers.width} 
             icon="↕️" 
             transform="rotate-90"
             desc="양쪽 어깨 끝점 사이의 직선 직선 거리"
@@ -114,21 +124,21 @@ export const SculptPanel: React.FC = () => {
           
           <MeasurementItem 
             label="Chest Width" 
-            value={bodyMeasurements.chest_width_cm * sculptModifiers.width} 
+            value={measurements.chest_width_cm * sculptModifiers.width} 
             icon="📏" 
             desc="가슴의 가장 넓은 부분을 측정한 너비"
           />
           
           <MeasurementItem 
             label="Waist Width" 
-            value={bodyMeasurements.waist_width_cm * sculptModifiers.width} 
+            value={measurements.waist_width_cm * sculptModifiers.width} 
             icon="⭕" 
             desc="허리의 가장 얇은 부분을 측정한 너비"
           />
           
           <MeasurementItem 
             label="Hip Width" 
-            value={bodyMeasurements.hip_width_cm * sculptModifiers.width} 
+            value={measurements.hip_width_cm * sculptModifiers.width} 
             icon="👖" 
             desc="골반의 가장 넓은 부분을 측정한 너비"
           />
@@ -141,7 +151,7 @@ export const SculptPanel: React.FC = () => {
           </div>
 
           {/* Size Recommendation Section */}
-          <SizeRecommendation chestWidth={bodyMeasurements.chest_width_cm * sculptModifiers.width} />
+          <SizeRecommendation chestWidth={measurements.chest_width_cm * sculptModifiers.width} />
           
         </div>
       )}

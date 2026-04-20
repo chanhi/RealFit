@@ -125,7 +125,7 @@ const GlbModel = ({ url }: { url: string }) => {
     <Center position={[0, -0.2, 0]}>
       <primitive 
         object={scene} 
-        rotation={[0, 0, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
         scale={[
           autoScale * sculptModifiers.width, 
           autoScale * sculptModifiers.height, 
