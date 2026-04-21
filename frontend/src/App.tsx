@@ -151,7 +151,7 @@ function App() {
           ].map((tool) => (
             <button
               key={tool.id}
-              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as any)}
+              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as 'VIEW' | 'SCULPT')}
               className={`flex flex-col items-center gap-1 transition-colors group relative ${activeTool === tool.id ? 'text-zinc-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
               title={activeTool === tool.id ? '패널 닫기' : '패널 열기'}
             >
@@ -205,16 +205,16 @@ function App() {
               vtonResultUrl ? (
                 <div className="relative w-full h-full flex items-center justify-center group bg-[#151515]">
                   <img src={vtonResultUrl} alt="VTON Result" className="h-full object-contain max-h-[600px]" />
-                  <div className="absolute bottom-8 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-2 group-hover:translate-y-0">
+                  <div className="absolute bottom-8 right-8 z-20">
                     <button 
                       onClick={() => {
                         useFittingStore.getState().saveToArchive(vtonResultUrl, 'My Custom Fit', ['Custom', 'AI Generated']);
-                        useFittingStore.getState().showToast('✅ 옷장에 피팅 결과가 저장되었습니다!');
+                        useFittingStore.getState().showToast('✅ 아카이브(Archive) 공간에 피팅 결과가 저장되었습니다!');
                         setCurrentPage('ARCHIVE');
                       }}
-                      className="px-8 py-4 bg-white text-gray-900 rounded-full font-bold uppercase tracking-widest text-xs shadow-2xl hover:bg-black hover:text-white hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+                      className="px-8 py-4 bg-zinc-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-bold uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-transform flex items-center gap-3 border border-white/10 dark:border-zinc-900/10"
                     >
-                      <span className="text-lg">📥</span> Save to Closet
+                      <span className="text-lg">📸</span> Save to Archive
                     </button>
                   </div>
                 </div>

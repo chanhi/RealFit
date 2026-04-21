@@ -56,6 +56,18 @@ const INITIAL_ARCHIVES: ArchiveItem[] = [
   },
 ];
 
+export interface WardrobeItem {
+  id: string;
+  imageUrl: string;
+  category: string;
+}
+
+const MOCK_WARDROBE: WardrobeItem[] = [
+  { id: 'w1', imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=200&auto=format&fit=crop', category: 'top' },
+  { id: 'w2', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=200&auto=format&fit=crop', category: 'top' },
+  { id: 'w3', imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=200&auto=format&fit=crop', category: 'top' },
+];
+
 export interface FittingState {
   // 1단계: 사용자 전신 사진
   photoFile: File | null;
@@ -83,8 +95,10 @@ export interface FittingState {
   currentPage: 'HOME' | 'ATELIER' | 'ARCHIVE' | 'ABOUT';
   isDarkMode: boolean;
 
-  // 아카이브
+  // 아카이브 및 옷장
   savedArchives: ArchiveItem[];
+  wardrobeItems: WardrobeItem[];
+  isWardrobeLoading: boolean;
 
   // 체형 조각(Sculpting) 스케일 조절자
   sculptModifiers: { width: number, height: number, depth: number };
@@ -112,6 +126,10 @@ export interface FittingState {
   resetSculptModifiers: () => void;
   toggleDarkMode: () => void;
   setCurrentJobId: (jobId: string | null) => void;
+  
+  // 옷장 메서드
+  fetchWardrobe: () => Promise<void>;
+  addWardrobeItem: (item: WardrobeItem) => void;
 }
 
 export const useFittingStore = create<FittingState>((set) => ({
@@ -135,6 +153,8 @@ export const useFittingStore = create<FittingState>((set) => ({
   currentPage: 'HOME',
   isDarkMode: false, // 라이트 모드 기본 시작
   savedArchives: INITIAL_ARCHIVES,
+  wardrobeItems: [],
+  isWardrobeLoading: false,
   sculptModifiers: { width: 1.0, height: 1.0, depth: 1.0 },
   currentJobId: null,
 
@@ -176,4 +196,14 @@ export const useFittingStore = create<FittingState>((set) => ({
   resetSculptModifiers: () => set({ sculptModifiers: { width: 1.0, height: 1.0, depth: 1.0 } }),
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
+  
+  fetchWardrobe: async () => {
+    set({ isWardrobeLoading: true });
+    // 가상의 API 호출 지연
+    await new Promise(resolve => setTimeout(resolve, 800));
+    set({ wardrobeItems: MOCK_WARDROBE, isWardrobeLoading: false });
+  },
+  addWardrobeItem: (item) => set((state) => ({
+    wardrobeItems: [item, ...state.wardrobeItems]
+  })),
 }))

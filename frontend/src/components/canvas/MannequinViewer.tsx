@@ -1,4 +1,5 @@
-import React, { Suspense, useMemo, Component, ReactNode } from 'react'
+import React, { Suspense, useMemo, Component } from 'react'
+import type { ReactNode } from 'react'
 import { Canvas, useLoader } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows, useGLTF, Center } from '@react-three/drei'
 import * as THREE from 'three'
@@ -18,7 +19,7 @@ class ErrorBoundary extends Component<{ children: ReactNode, fallback: ReactNode
   }
 
   // 에러 로그 기록
-  componentDidCatch(error: any, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("3D Viewer Critical Error:", error, errorInfo);
   }
 

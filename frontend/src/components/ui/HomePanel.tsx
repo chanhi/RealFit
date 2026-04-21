@@ -23,13 +23,21 @@ export const HomePanel: React.FC = () => {
 
       // 4. (추가) 화면이 넘어간 뒤 백그라운드에서 누끼 제거(API) 호출 시작
       const { uploadAndRemoveBackground } = await import('../../api')
-      const { showToast, setIsRemovingBg } = useFittingStore.getState()
+      const { showToast, setIsRemovingBg, addWardrobeItem } = useFittingStore.getState()
       
       // 누끼 전용 로딩 스피너 활성화
       setIsRemovingBg(true)
       try {
         const transparentUrl = await uploadAndRemoveBackground(file)
         setClothing(file, transparentUrl)
+        
+        // [수정] 홈 화면에서 트라이온 한 상품도 옷장(Wardrobe) 갤러리에 추가하여 스위칭이 가능하도록 함.
+        addWardrobeItem({
+          id: `product-${product.id}`,
+          imageUrl: transparentUrl,
+          category: 'top'
+        })
+
         showToast('🧥 선택하신 상품 이미지의 배경 제거가 완료되었습니다.')
       } catch (err) {
         console.error('HomePanel 배경 제거 실패:', err)

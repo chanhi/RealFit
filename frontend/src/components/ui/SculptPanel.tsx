@@ -169,6 +169,7 @@ const SizeRecommendation = ({ chestWidth }: { chestWidth: number }) => {
 
   useEffect(() => {
     let isMounted = true
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsFetching(true)
     
     getSizeRecommendation(chestWidth).then(res => {

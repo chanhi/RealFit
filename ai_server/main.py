@@ -31,7 +31,7 @@ async def generate_3d_model(request: GenerateRequest):
         "data" : {
             "job_id": request.job_id,
             # "image_url": "https://v3b.fal.media/files/b/0a96dfa0/zyHFw_wAmIQPeJhX16jDS_tripo_model_855a2675-0348-4c0f-945d-c543433bda99.glb",
-            "image_url": "result.glb"
+            "image_url": "https://v3b.fal.media/files/b/0a9651dc/LX8gVO2oRa46wuBZPMqfl_tripo_model_5fe29ede-6d72-4ba3-9aef-0009414c6323.glb"
         }
     }
 
