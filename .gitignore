@@ -6,7 +6,6 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
-/ai_server/.env
 
 # docker
 *.log
@@ -19,6 +18,4 @@ storage/input/
 storage/output/
 
 # optional
-node_modules/frontend/node_modules/
-frontend/.env.local
-frontend/dist/
+node_modules/

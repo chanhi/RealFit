@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, String, Text, DateTime
+from sqlalchemy.sql import func
 from app.db.session import Base
 
 
@@ -10,5 +11,11 @@ class Job(Base):
     category = Column(String, nullable=False)
     user_image_path = Column(Text, nullable=False)
     cloth_image_path = Column(Text, nullable=False)
+
     result_image_path = Column(Text, nullable=True)
+    model_mesh_url = Column(Text, nullable=True)
+    preview_image_url = Column(Text, nullable=True)
+    task_id = Column(String, nullable=True)
+
     error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
