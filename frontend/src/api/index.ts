@@ -139,7 +139,7 @@ export const generate3DModel = async (
     model_height_unit: 1.82,
     scale_factor: 175.0 / 1.82,
     shoulder_width_cm: 45.0,
-    chest_width_cm: 30.5,
+    chest_width_cm: 50.0,
     waist_width_cm: 26.0,
     hip_width_cm: 33.1
   };
@@ -196,15 +196,29 @@ export const generateVTONResult = async (
 };
 
 /**
- * 가상의 사이즈 추천 API 목업
- * (나중에 실제 백엔드 연동 시 endpoint 호출 로직으로 변경 가능합니다)
+ * 옷 사이즈 추천 API 호출
+ * 체형(가슴 너비) 데이터를 바탕으로 추천 사이즈와 그에 맞는 상품 목록을 가져옵니다.
  */
 export const getSizeRecommendation = async (
   chestWidth: number
-): Promise<{ size: string; confidence: number; detail: string }> => {
-  return new Promise((resolve) => {
-    // API 레이턴시 시뮬레이션
-    setTimeout(() => {
+): Promise<{ size: string; confidence: number; detail: string; products?: any[] }> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/products/appropriate-size?chest_cm=${chestWidth}`);
+    if (!response.ok) {
+      throw new Error(`Size API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return {
+      size: data.recommendation.size,
+      confidence: 85, // 백엔드에서 내려주지 않는 경우 고정값 또는 임의 계산
+      detail: data.recommendation.detail,
+      products: data.products
+    };
+  } catch (error) {
+    console.error('Failed to get size recommendation from backend, falling back to mock:', error);
+    // 백엔드 에러 시 기존 Mock 로직(폴백)으로 동작
+    return new Promise((resolve) => {
       let size = 'XXL';
       let confidence = 85;
       let detail = '체형을 넉넉하게 감싸는 오버핏을 추천합니다.';
@@ -216,8 +230,8 @@ export const getSizeRecommendation = async (
       else if (chestWidth < 36) { size = 'XL'; detail = '트렌디하게 떨어지는 오버핏 실루엣입니다.'; confidence = 83; }
 
       resolve({ size, confidence, detail });
-    }, 600);
-  });
+    });
+  }
 };
 
 /**
