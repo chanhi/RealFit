@@ -27,3 +27,4 @@ transformers==4.38.2
 accelerate==0.27.2
 safetensors==0.4.2
 huggingface-hub==0.22.2
+

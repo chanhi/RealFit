@@ -1,13 +1,83 @@
 import os
 import uuid
+import httpx
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from sqlalchemy.orm import Session
+
 from app.schemas.job import JobCreateResponse, JobStatusResponse, JobResultResponse
-from app.services.job_service import create_job, get_job
+from app.services.job_service import (
+    create_job,
+    get_job,
+    update_job_status,
+    update_job_result,
+    update_job_error,
+)
 from app.services.file_service import save_uploaded_file
 from app.db.session import get_db
+from app.services.job_service import (
+    create_job,
+    get_job,
+    get_all_jobs,
+    update_job_status,
+    update_job_result,
+    update_job_error,
+)
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["Jobs"])
+
+
+def trigger_ai_server(db: Session, job_id: str, user_image_path: str, cloth_image_path: str):
+    try:
+        update_job_status(db, job_id, "PROCESSING")
+
+        response = httpx.post(
+            "http://ai_server:9002/ai/mannequin/generate",
+            json={
+                "job_id": job_id,
+                "body_image_url": user_image_path,
+                "clothing_image_url": cloth_image_path,
+            },
+            timeout=30.0,
+        )
+
+        if response.status_code == 200:
+            result_data = response.json()
+            data = result_data.get("data", {})
+
+            task_id = data.get("task_id")
+            model_mesh = data.get("model_mesh", {})
+            rendered_image = data.get("rendered_image", {})
+
+            model_mesh_url = model_mesh.get("url")
+            preview_image_url = rendered_image.get("url")
+
+            legacy_image_url = data.get("image_url")
+
+            if not model_mesh_url and legacy_image_url:
+                model_mesh_url = legacy_image_url
+
+            if not preview_image_url and legacy_image_url:
+                preview_image_url = legacy_image_url
+
+            result_image_path = model_mesh_url
+
+            updated_job = update_job_result(
+                db=db,
+                job_id=job_id,
+                result_image_path=result_image_path,
+                model_mesh_url=model_mesh_url,
+                preview_image_url=preview_image_url,
+                task_id=task_id
+            )
+            return updated_job
+        else:
+            error_message = f"AI server failed with status {response.status_code}"
+            updated_job = update_job_error(db, job_id, error_message)
+            return updated_job
+
+    except Exception as e:
+        updated_job = update_job_error(db, job_id, f"AI processing failed: {str(e)}")
+        return updated_job
 
 
 @router.post("", response_model=JobCreateResponse)
@@ -52,10 +122,17 @@ def create_new_job(
     save_uploaded_file(user_image, user_save_path)
     save_uploaded_file(cloth_image, cloth_save_path)
 
-    job = create_job(
+    create_job(
         db=db,
         job_id=job_id,
         category=category,
+        user_image_path=user_save_path,
+        cloth_image_path=cloth_save_path
+    )
+
+    job = trigger_ai_server(
+        db=db,
+        job_id=job_id,
         user_image_path=user_save_path,
         cloth_image_path=cloth_save_path
     )
@@ -70,8 +147,33 @@ def create_new_job(
             "user_image_path": job.user_image_path,
             "cloth_image_path": job.cloth_image_path,
             "result_image_path": job.result_image_path,
-            "error_message": job.error_message
+            "model_mesh_url": job.model_mesh_url,
+            "preview_image_url": job.preview_image_url,
+            "task_id": job.task_id,
+            "error_message": job.error_message,
+            "created_at": job.created_at.isoformat() if job.created_at else None
         }
+    }
+
+
+@router.get("")
+def read_all_jobs(db: Session = Depends(get_db)):
+    jobs = get_all_jobs(db)
+
+    return {
+        "success": True,
+        "message": "Jobs found",
+        "data": [
+            {
+                "job_id": job.job_id,
+                "status": job.status,
+                "category": job.category,
+                "thumbnail_url": job.preview_image_url or job.result_image_path,
+                "mannequin_url": job.model_mesh_url or job.result_image_path,
+                "created_at": job.created_at.isoformat() if job.created_at else None
+            }
+            for job in jobs
+        ]
     }
 
 
@@ -92,7 +194,11 @@ def read_job(job_id: str, db: Session = Depends(get_db)):
             "user_image_path": job.user_image_path,
             "cloth_image_path": job.cloth_image_path,
             "result_image_path": job.result_image_path,
-            "error_message": job.error_message
+            "mannequin_url": job.model_mesh_url or job.result_image_path,
+            "preview_image_url": job.preview_image_url or job.result_image_path,
+            "task_id": job.task_id,
+            "error_message": job.error_message,
+            "created_at": job.created_at.isoformat() if job.created_at else None
         }
     }
 
@@ -111,7 +217,11 @@ def read_job_result(job_id: str, db: Session = Depends(get_db)):
             "data": {
                 "job_id": job.job_id,
                 "status": job.status,
-                "result_image_path": None
+                "result_image_path": None,
+                "mannequin_url": None,
+                "preview_image_url": None,
+                "task_id": job.task_id,
+                "created_at": job.created_at.isoformat() if job.created_at else None
             }
         }
 
@@ -121,6 +231,10 @@ def read_job_result(job_id: str, db: Session = Depends(get_db)):
         "data": {
             "job_id": job.job_id,
             "status": job.status,
-            "result_image_path": job.result_image_path
+            "result_image_path": job.result_image_path,
+            "mannequin_url": job.model_mesh_url or job.result_image_path,
+            "preview_image_url": job.preview_image_url or job.result_image_path,
+            "task_id": job.task_id,
+            "created_at": job.created_at.isoformat() if job.created_at else None
         }
     }
