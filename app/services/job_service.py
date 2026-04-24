@@ -85,3 +85,6 @@ def update_job_error(db: Session, job_id: str, error_message: str):
         db.commit()
         db.refresh(job)
     return job
+
+
+
