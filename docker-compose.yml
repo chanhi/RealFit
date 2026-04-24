@@ -37,15 +37,14 @@ services:
     volumes:
       - ./ai_server/dummy:/app/shared/dummy
 
-  nginx:
-    image: nginx:stable-alpine
-    container_name: virtual_fitting_nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: virtual_fitting_frontend
     restart: always
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./ai_server/dummy:/usr/share/nginx/html/static:ro
+      - "1010:80"
     depends_on:
       - backend
       - ai_server
