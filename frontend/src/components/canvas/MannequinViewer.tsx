@@ -68,20 +68,19 @@ const ObjModel = ({ url }: { url: string }) => {
     return clone
   }, [obj])
 
-  // 2단계: 모델의 전체 크기와 중심점을 계산하여 뷰포트 정중앙에 배치합니다.
-  const { center, maxDim, minY } = useMemo(() => {
+  // 2단계: 자동 스케일링을 제거하고 고정 스케일 적용 (절대 좌표계 도입)
+  // 백엔드 AI 모델 정규화를 전제로 하며, 임시 데모용으로 1.5배율을 사용합니다.
+  const { center, minY } = useMemo(() => {
     const box = new THREE.Box3().setFromObject(clonedObj)
     const c = box.getCenter(new THREE.Vector3())
-    const s = box.getSize(new THREE.Vector3())
     return {
       center: c,
-      maxDim: Math.max(s.x, s.y, s.z),
       minY: box.min.y
     }
   }, [clonedObj])
 
-  const targetSize = 3.0 // 화면에 보일 대상 크기
-  const scale = maxDim > 0 ? targetSize / maxDim : 1.0
+  const scale = 1.5 // 고정 절대 스케일
+  const targetSize = 3.0 // 모델 배치를 위한 수직 오프셋 기준
 
   return (
     <group position={[0, -targetSize / 2, 0]}>
@@ -110,17 +109,9 @@ const GlbModel = ({ url }: { url: string }) => {
 
   const { scene } = useGLTF(loadUrl)
 
-  // [자동 스케일링] 모델의 경계 상자(Bounding Box)를 계산하여 어떤 크기의 모델이라도 화면에 꽉 차게 조절합니다.
-  const { maxDim } = useMemo(() => {
-    const box = new THREE.Box3().setFromObject(scene)
-    const s = box.getSize(new THREE.Vector3())
-    return {
-      maxDim: Math.max(s.x, s.y, s.z),
-    }
-  }, [scene])
-
-  const targetSize = 2.8 // 카메라 시야에 맞춘 최적의 타겟 크기
-  const autoScale = maxDim > 0 ? targetSize / maxDim : 1.0
+  // [고정 스케일링] Bounding Box 기반 스케일링 제거 (옷 부피로 인한 체형 축소 방지)
+  // 모든 3D 모델이 동일한 절대 비율을 유지하도록 고정 스케일(1.5) 사용
+  const autoScale = 1.5
 
   return (
     <Center position={[0, -0.2, 0]}>
