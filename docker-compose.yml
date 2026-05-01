@@ -30,12 +30,24 @@ services:
   ai_server:
     build:
       context: ./ai_server
+      dockerfile: Dockerfile
     container_name: virtual_fitting_ai
-    restart: always
-    expose:
-      - "9002"
+    ports:
+      - "9002:9002"
     volumes:
       - ./ai_server/dummy:/app/shared/dummy
+      # 임시 결과물을 저장할 워크스페이스 볼륨 추가
+      - ./storage/ai_workspace:/app/temp_workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1 # 1개의 GPU 할당 (또는 'all')
+              capabilities: [gpu, utility, compute]
+    restart: unless-stopped
 
   nginx:
     image: nginx:stable-alpine
