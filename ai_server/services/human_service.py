@@ -55,6 +55,10 @@ class HumanService:
             json.dump(mesh_data, f)
             
         return str(json_path)
+    
+    def correct_3d_mannequin(self, obj_path: str, job_id:str) -> str:
+        """메쉬 데이터로 마네킹 보정"""
+        return "/app/shared/dummy/result.glb"
 
     def render_mannequin_views(self, obj_path: str, job_id: str, vton_target="upper") -> dict:
         """PyTorch3D 전면 렌더링 (후면 제거)"""
