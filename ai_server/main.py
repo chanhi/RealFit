@@ -8,6 +8,8 @@ from services.human_service import HumanService
 from services.garment_service import GarmentService
 from services.vton import VtonService
 from services.fal import FalService
+#테스트용
+from pydantic import BaseModel
 
 app = FastAPI(title="RealFit AI Server")
 
