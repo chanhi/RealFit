@@ -55,6 +55,12 @@ class HumanService:
             json.dump(mesh_data, f)
             
         return str(json_path)
+    
+    def correct_3d_mannequin(self, obj_path: str, mesh_url: str, job_id: str) -> str:
+        """메쉬 데이터와 합성 결과를 사용해 3D 마네킹을 보정합니다."""
+        # 현재는 더미 GLB 결과를 반환하도록 구현되어 있습니다.
+        # 실제 동작에서 mesh_url을 다운로드하거나 로컬 파일 경로로 변환한 뒤 보정 로직을 추가하세요.
+        return "/app/shared/dummy/result.glb"
 
     def render_mannequin_views(self, obj_path: str, job_id: str, vton_target="upper") -> dict:
         """PyTorch3D 전면 렌더링 (후면 제거)"""
