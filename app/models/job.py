@@ -10,12 +10,16 @@ class Job(Base):
     status = Column(String, nullable=False)
     category = Column(String, nullable=False)
     user_image_path = Column(Text, nullable=False)
-    cloth_image_path = Column(Text, nullable=False)
+    cloth_image_path = Column(Text, nullable=True)
 
     result_image_path = Column(Text, nullable=True)
     model_mesh_url = Column(Text, nullable=True)
     preview_image_url = Column(Text, nullable=True)
     task_id = Column(String, nullable=True)
+
+    mannequin_obj_url = Column(Text, nullable=True)
+    mannequin_mesh_url = Column(Text, nullable=True)
+    front_image_url = Column(Text, nullable=True)
 
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
