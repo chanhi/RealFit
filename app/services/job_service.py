@@ -65,3 +65,19 @@ def update_job_error(db: Session, job_id: str, error_message: str):
         db.commit()
         db.refresh(job)
     return job
+
+def update_mannequin_result(
+        db: Session,
+        job_id: str,
+        mannequin_obj_url: str = None,
+        mannequin_mesh_url: str = None,
+        front_image_url: str = None
+):
+    job = get_job(db, job_id)
+    if job:
+        job.mannequin_obj_url = mannequin_obj_url
+        job.mannequin_mesh_url = mannequin_mesh_url
+        job.front_image_url = front_image_url
+        db.commit()
+        db.refresh(job)
+    return job
