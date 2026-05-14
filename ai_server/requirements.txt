@@ -18,4 +18,4 @@ scikit-image
 dill
 omegaconf
 # PyTorch와 PyTorch3D는 Dockerfile에서 CUDA 버전에 맞춰 직접 설치합니다.
-# fal_client
+fal_client #테스트용
