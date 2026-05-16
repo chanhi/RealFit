@@ -6,7 +6,6 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
-/ai_server/.env
 
 # docker
 *.log
@@ -19,22 +18,4 @@ storage/input/
 storage/output/
 
 # optional
-node_modules/frontend/node_modules/
-frontend/.env.local
-frontend/dist/
-
-# =========================
-# AI Server Generated Files
-# =========================
-# Nginx와 공유하는 결과물 폴더 내 파일들 무시 (폴더 구조 유지를 위해 .gitkeep은 예외 처리)
-ai_server/dummy/*
-!ai_server/dummy/.gitkeep
-
-# 워크스페이스 및 캐시
-storage/ai_workspace/
-ai_server/__pycache__/
-.cache/
-
-# 모델 가중치 및 민감한 데이터 파일 (SMPL 모델 등)
-ai_server/data/*.pkl
-ai_server/data/*.npz
+node_modules/

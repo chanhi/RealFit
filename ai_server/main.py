@@ -1,77 +1,72 @@
-import uuid
-from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import Response, JSONResponse
-import aiofiles
-
-from services.human_service import HumanService
-from services.garment_service import GarmentService
-from services.vton import VtonService
-from services.fal import FalService
-#테스트용
+from fastapi import FastAPI, Request, UploadFile, File
 from pydantic import BaseModel
+import os
+import uuid
+import uvicorn
 
 app = FastAPI(title="RealFit AI Server")
 
-human_service = HumanService()
-garment_service = GarmentService()
-vton_service = VtonService()
-fal_service = FalService()
+# 공유 볼륨 내 더미 파일 경로
+DUMMY_DIR = "/app/shared/dummy"
+DUMMY_GLB_URL = "http://localhost/static/result.glb"
+DUMMY_OBJ_URL = "http://localhost/static/sample.obj"
+DUMMY_MESH_URL = "http://localhost/static/sample_mesh.json"
+DUMMY_FRONT_URL = "http://localhost/static/sample_front.png"
 
-# Nginx와 공유하는 볼륨 경로[cite: 3, 4]
-WORKSPACE_DIR = Path("/app/shared/dummy")
-WORKSPACE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Nginx 정적 파일 제공 URL Prefix (Nginx 설정에 맞춰 /static 으로 서빙됨)
-NGINX_STATIC_URL = "/static"
+class GenerateRequest(BaseModel):
+    job_id: str
+    body_image_url: str
+    clothing_image_url: str
+
+class FittingRequest(BaseModel):
+    job_id: str
+    mannequin_obj_url: str
+    mannequin_mesh_url: str
+    cloth_image_url: str
+
+@app.post("/ai/fitting/generate")
+async def generate_fitting(request: FittingRequest):
+    print(f"[fitting] Job ID: {request.job_id}")
+    print(f"[fitting] mannequin_obj_url: {request.mannequin_obj_url}")
+    print(f"[fitting] mannequin_mesh_url: {request.mannequin_mesh_url}")
+    print(f"[fitting] cloth_image_url: {request.cloth_image_url}")
+
+    return {
+        "success": True,
+        "message": "Fitting generated successfully",
+        "data": {
+            "task_id": request.job_id,
+            "glb_url": "http://localhost/static/result.glb"
+        }
+    }
 
 @app.get("/ai/health")
 def health_check():
     return {"status": "AI Server is running"}
 
-@app.post("/ai/preprocess/garment")
-async def preprocess_garment(file: UploadFile = File(...)):
-    """의류 누끼 API"""
-    try:
-        image_bytes = await file.read()
-        processed_bytes = garment_service.remove_background(image_bytes)
-        return Response(content=processed_bytes, media_type="image/png")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/ai/preprocess/human")
 async def preprocess_human(file: UploadFile = File(...)):
-    """마네킹 추출 및 렌더링 API"""
-    job_id = str(uuid.uuid4())[:8]
-    input_img_path = WORKSPACE_DIR / f"{job_id}_input.png"
-    
-    try:
-        # 1. 파일 저장
-        async with aiofiles.open(input_img_path, 'wb') as out_file:
-            await out_file.write(await file.read())
-            
-        # 2. 4D-Humans 추출 (마네킹 .obj 생성)
-        obj_path = human_service.extract_3d_mannequin(str(input_img_path), job_id)
-        
-        # 3. 매쉬 데이터 추출 (후처리용 .json 생성)
-        mesh_json_path = human_service.extract_mesh_data(obj_path, job_id)
-        
-        # 4. PyTorch3D 전면 렌더링 (.png 생성)
-        rendered_paths = human_service.render_mannequin_views(obj_path, job_id, vton_target="upper")
-        
-        # ⭐️ 프론트/백엔드에서 즉시 다운로드할 수 있는 Nginx URL 형식으로 반환
-        return JSONResponse(content={
-            "status": "success",
-            "job_id": job_id,
-            "urls": {
-                "mannequin_obj": f"{NGINX_STATIC_URL}/{Path(obj_path).name}",
-                "mannequin_mesh": f"{NGINX_STATIC_URL}/{Path(mesh_json_path).name}",
-                "front_image": f"{NGINX_STATIC_URL}/{Path(rendered_paths['front']).name}"
-            }
-        })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Human Processing Error: {str(e)}")
-    
+    # 더미 응답용: 실제 저장 없이 URL만 반환
+    fake_id = str(uuid.uuid4())[:8]
+
+    print(f"[preprocess] filename={file.filename}, content_type={file.content_type}")
+
+    return {
+        "success": True,
+        "message": "Human preprocessing completed.",
+        "urls": {
+            "mannequin_obj": DUMMY_OBJ_URL,
+            "mannequin_mesh": DUMMY_MESH_URL,
+            "front_image": DUMMY_FRONT_URL
+        },
+        "meta": {
+            "task_id": fake_id,
+            "filename": file.filename,
+            "content_type": file.content_type
+        }
+    }
 
 # 요청 데이터 구조 정의
 class PreprocessRequest(BaseModel):
@@ -79,29 +74,30 @@ class PreprocessRequest(BaseModel):
     cloth_file_url: str
     mannequin_mesh_url: str
 
-@app.post("/ai/preprocess/edit")
-async def preprocess_vton(data: PreprocessRequest):
-    """옷 합성"""
-    try:
-        
-        # 1단계: vton 합성
-        vton_img_path = vton_service.vton(data.front_file_url, data.cloth_file_url)
+@app.post("/ai/mannequin/generate")
+async def generate_3d_model(request: GenerateRequest):
+    print(f"[generate] Job ID: {request.job_id}")
+    print(f"[generate] Body URL: {request.body_image_url}")
+    print(f"[generate] Clothing URL: {request.clothing_image_url}")
 
-        # 2단계: 3D 모델 생성
-        fal_img_path = fal_service.to3D(vton_img_path)
+    return {
+        "status": "success",
+        "message": "3D 모델 생성완료.",
+        "data": {
+            "task_id": request.job_id,
+            "model_mesh": {
+                "file_size": 6744644,
+                "content_type": "application/octet-stream",
+                "url": DUMMY_GLB_URL
+            },
+            "rendered_image": {
+                "file_size": 13718,
+                "content_type": "image/webp",
+                "url": DUMMY_GLB_URL
+            }
+        }
+    }
 
-        # 3단계: 3D 마네킹 보정
-        job_id = str(uuid.uuid4())[:8]
-        corrected_model_url = human_service.correct_3d_mannequin(
-            fal_img_path, 
-            data.mannequin_mesh_url, 
-            job_id
-        )
 
-        return JSONResponse(content={
-            "status": "success",
-            "job_id": job_id,
-            "url": corrected_model_url
-        })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"VTON processing failed: {str(e)}")
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=9002, reload=True)
