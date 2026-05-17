@@ -7,12 +7,12 @@ export const UploadPanel: React.FC = () => {
     photoFile, photoPreviewUrl, 
     clothingFile, clothingPreviewUrl,
     isLoading, isRemovingBg,
-    setPhoto, setClothing,
-    setIsLoading, setIsRemovingBg, setModelUrl, setVtonResultUrl, setActiveTab,
+    selectedBaseModel,
+    setClothing,
+    setIsLoading, setIsRemovingBg, setModelUrl, setVtonResultUrl,
     wardrobeItems, isWardrobeLoading, fetchWardrobe, addWardrobeItem
   } = useFittingStore()
   
-  const photoInputRef = useRef<HTMLInputElement>(null)
   const clothingInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -20,17 +20,6 @@ export const UploadPanel: React.FC = () => {
       fetchWardrobe()
     }
   }, [fetchWardrobe, wardrobeItems.length])
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0]
-      const previewUrl = URL.createObjectURL(file)
-      setPhoto(file, previewUrl)
-      // 초기화
-      setModelUrl(null)
-      setVtonResultUrl(null)
-    }
-  }
 
   const handleClothingChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -87,14 +76,26 @@ export const UploadPanel: React.FC = () => {
     }
   }
 
+  // 홈 화면에서 사진을 들고 넘어온 경우, 컴포넌트 마운트 시 최초 1회 자동 생성 시작
+  useEffect(() => {
+    const state = useFittingStore.getState()
+    if (state.photoFile && !state.currentJobId && !state.isLoading) {
+      handleGenerate3D()
+    } else if (state.selectedBaseModel && !state.modelUrl) {
+      // 기본 마네킹을 선택하고 넘어온 경우 더미 모델 세팅
+      setModelUrl('/mock/my_A_pose_mannequin%20(1)%20(1).obj')
+    }
+  }, [])
+
   const handleGenerate3D = async () => {
-    if (!photoFile) return
-    const { setLoadingType, setLoadingStage, showToast } = useFittingStore.getState()
+    // 사진이 없으면 진행 불가 (기본 모델은 useEffect에서 처리)
+    if (!photoFile) return;
+    
+    const { setLoadingType, setLoadingStage, showToast, setModelUrl, setCurrentJobId } = useFittingStore.getState()
     setIsLoading(true)
     setLoadingType('3d')
     setLoadingStage(0)
 
-    // Simulate stage progression while waiting for API
     const timers = [
       setTimeout(() => useFittingStore.getState().isLoading && setLoadingStage(1), 3000),
       setTimeout(() => useFittingStore.getState().isLoading && setLoadingStage(2), 7000),
@@ -102,12 +103,12 @@ export const UploadPanel: React.FC = () => {
     ]
 
     try {
-      const { url, measurements } = await generate3DModel(photoFile)
+      const { url, jobId, measurements } = await generate3DModel(photoFile)
+      setCurrentJobId(jobId)
       timers.forEach(clearTimeout)
       setModelUrl(url, measurements)
-      setActiveTab('3d')
+      useFittingStore.getState().setActiveTab('3d')
 
-      // If user navigated away, show toast notification
       if (useFittingStore.getState().currentPage !== 'ATELIER') {
         showToast('✅ 3D 아바타 생성이 완료되었습니다!')
       }
@@ -123,10 +124,14 @@ export const UploadPanel: React.FC = () => {
   }
 
   const handleGenerateVTON = async () => {
+    const { currentJobId, selectedBaseModel, setLoadingType, setLoadingStage, showToast, setActiveTab } = useFittingStore.getState()
+    
     // 누끼 따는 중이면 대기
-    if (!photoFile || !clothingFile || isRemovingBg) return
+    if ((!currentJobId && !selectedBaseModel) || !clothingFile || isRemovingBg) {
+      if (!currentJobId && !selectedBaseModel) showToast('❌ 마네킹 생성을 먼저 진행해주세요.');
+      return
+    }
 
-    const { setLoadingType, setLoadingStage, showToast, setActiveTab } = useFittingStore.getState()
     setIsLoading(true)
     setLoadingType('vton')
     setLoadingStage(0)
@@ -138,7 +143,14 @@ export const UploadPanel: React.FC = () => {
     ]
 
     try {
-      const url = await generateVTONResult(photoFile, clothingFile, 'transparent')
+      let url = '';
+      if (!currentJobId || currentJobId.startsWith('mock-')) {
+        // 더미 데이터 폴백: 백엔드를 거치지 않고 로컬 결과 반환 (기본 마네킹용)
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        url = '/mock/result.glb';
+      } else {
+        url = await generateVTONResult(currentJobId, clothingFile, 'transparent')
+      }
       timers.forEach(clearTimeout)
 
       // 백엔드가 2D VTON 대신 3D .glb 파일을 반환하는 경우, 3D 뷰어로 연결
@@ -166,13 +178,6 @@ export const UploadPanel: React.FC = () => {
     }
   }
 
-  const handleClearPhoto = () => {
-    setPhoto(null, null)
-    setModelUrl(null)
-    setVtonResultUrl(null)
-    if (photoInputRef.current) photoInputRef.current.value = ''
-  }
-
   const handleClearClothing = () => {
     setClothing(null, null)
     if (clothingInputRef.current) clothingInputRef.current.value = ''
@@ -181,54 +186,33 @@ export const UploadPanel: React.FC = () => {
   return (
     <div className="flex flex-col h-full p-6 text-gray-900 dark:text-zinc-100 transition-colors duration-500">
       <h2 className="font-serif text-2xl font-bold mb-1">Atelier Controls</h2>
-      <p className="text-sm text-gray-400 dark:text-zinc-500 mb-6">디지털 아뜰리에에서 당신만의 실루엣을 완성하세요.</p>
+      <p className="text-sm text-gray-400 dark:text-zinc-500 mb-6">원하는 의류를 선택하여 피팅을 진행하세요.</p>
 
-      {/* 01: Photo Upload */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-zinc-900 dark:text-white font-bold text-sm">01</span>
-        <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Photo Upload</span>
-      </div>
-
-      <div className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 aspect-[3/4] mb-4 group cursor-pointer transition-colors duration-500">
-        {photoPreviewUrl ? (
-          <img src={photoPreviewUrl} alt="User Upload" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors pointer-events-none">
-            <svg className="h-10 w-10 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-xs font-medium">내 전신 사진 업로드</span>
+      {/* Mannequin Status */}
+      <div className="mb-6 p-4 rounded-xl bg-gray-50 dark:bg-zinc-800/50 border border-gray-200 dark:border-white/5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center overflow-hidden">
+            {photoPreviewUrl ? (
+              <img src={photoPreviewUrl} alt="My Body" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl opacity-80">
+                {selectedBaseModel?.includes('female') ? '🧍‍♀️' : '🧍‍♂️'}
+              </span>
+            )}
           </div>
-        )}
-        <input
-          type="file"
-          accept="image/jpeg, image/png"
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-          onChange={handlePhotoChange}
-          ref={photoInputRef}
-        />
+          <div>
+            <p className="text-xs font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">Current Mannequin</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-zinc-200">
+              {photoFile ? 'Custom Generated 3D Body' : (selectedBaseModel || 'Base Model')}
+            </p>
+          </div>
+        </div>
       </div>
 
-      <button
-        onClick={handleGenerate3D}
-        disabled={!photoFile || isLoading}
-        className="w-full py-3.5 bg-zinc-900 hover:bg-black dark:bg-white dark:hover:bg-zinc-200 disabled:bg-gray-200 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-white/20 text-white dark:text-zinc-900 text-sm font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-zinc-900/10 dark:shadow-white/10 active:scale-[0.98]"
-      >
-        {isLoading ? 'Processing...' : 'Generate 3D Avatar'}
-      </button>
-
-      {photoFile && (
-        <button onClick={handleClearPhoto} className="mt-3 text-xs text-gray-400 hover:text-red-400 transition-colors self-center">
-          바디 사진 변경하기
-        </button>
-      )}
-
-      <div className="border-t border-gray-200 dark:border-white/10 my-6 transition-colors duration-500" />
-
-      {/* 02: Clothing Upload & Wardrobe */}
+      {/* 01: Select Clothing */}
       <div className="flex flex-col gap-1 mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-900 dark:text-white font-bold text-sm">02</span>
+          <span className="text-zinc-900 dark:text-white font-bold text-sm">01</span>
           <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Select Clothing</span>
         </div>
       </div>
@@ -283,7 +267,7 @@ export const UploadPanel: React.FC = () => {
 
       <button
         onClick={handleGenerateVTON}
-        disabled={!photoFile || !clothingFile || isLoading}
+        disabled={(!photoFile && !selectedBaseModel) || !clothingFile || isLoading}
         className="w-full py-3.5 bg-gray-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 disabled:bg-gray-200 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-white/20 text-white dark:text-amber-950 text-sm font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-gray-900/20 active:scale-[0.98]"
       >
         {isLoading ? 'Processing...' : 'Start Virtual Fitting'}
