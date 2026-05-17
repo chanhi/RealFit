@@ -13,15 +13,19 @@ from pytorch3d.renderer import (
 
 class HumanService:
     def __init__(self):
-        # ⭐️ GPU 호환성 문제 회피를 위해 렌더링도 강제로 CPU를 사용합니다.
-        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu") 
         self.base_path = Path("/app")
-        
-        # ⭐️ Nginx와 공유되는 dummy 폴더로 작업 경로를 변경합니다.[cite: 4]
+        # Nginx와 공유되는 dummy 폴더로 작업 경로를 변경합니다.[cite: 4]
         self.workspace_dir = self.base_path / "shared" / "dummy"
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         self.fourd_humans_dir = self.base_path / "4D-Humans"
+        # 모드에 따른 CPU/GPU 자동 할당
+        self.mode = os.getenv("AI_MODE", "test").lower()
+        if self.mode == "prod" and torch.cuda.is_available():
+            self.device = torch.device("cuda:0")
+            print("🚀 [PROD MODE] HumanService: GPU(CUDA) 활성화됨")
+        else:
+            self.device = torch.device("cpu")
+            print("⚡ [TEST MODE] HumanService: CPU 모드로 동작함")
 
     def extract_3d_mannequin(self, image_path: str, job_id: str) -> str:
         """4D-Humans OBJ 추출"""
