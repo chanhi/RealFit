@@ -18,43 +18,7 @@ export interface ArchiveItem {
   tags: string[];
 }
 
-const INITIAL_ARCHIVES: ArchiveItem[] = [
-  {
-    id: 1,
-    date: '2026.03.31',
-    description: 'Casual Spring Look',
-    imageUrl: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80',
-    tags: ['Daily', 'Denim']
-  },
-  {
-    id: 2,
-    date: '2026.03.28',
-    description: 'Formal Setup for Interview',
-    imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=600&auto=format&fit=crop',
-    tags: ['Suit', 'Dark']
-  },
-  {
-    id: 3,
-    date: '2026.03.25',
-    description: 'Weekend Streetwear',
-    imageUrl: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=600&auto=format&fit=crop',
-    tags: ['Street', 'Oversized']
-  },
-  {
-    id: 4,
-    date: '2026.03.10',
-    description: 'Summer Vibe Check',
-    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=600&auto=format&fit=crop',
-    tags: ['Summer', 'Tee']
-  },
-  {
-    id: 5,
-    date: '2026.02.14',
-    description: 'Valentine Date Outfit',
-    imageUrl: 'https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?q=80&w=600&auto=format&fit=crop',
-    tags: ['Date', 'Knit']
-  },
-];
+const INITIAL_ARCHIVES: ArchiveItem[] = [];
 
 export interface WardrobeItem {
   id: string;
@@ -89,16 +53,20 @@ export interface FittingState {
   loadingStage: number; // 0~3
   toastMessage: string | null;
   activeTab: '3d' | '2d';
-  activeTool: 'VIEW' | 'SCULPT' | null;
+  activeTool: 'MODEL' | 'VIEW' | 'SCULPT' | null;
   
   // 라우팅
-  currentPage: 'HOME' | 'ATELIER' | 'ARCHIVE' | 'ABOUT';
+  currentPage: 'HOME' | 'SHOP' | 'ATELIER' | 'ARCHIVE' | 'ABOUT';
   isDarkMode: boolean;
 
-  // 아카이브 및 옷장
+  // 아카이브, 옷장, 위시리스트
   savedArchives: ArchiveItem[];
   wardrobeItems: WardrobeItem[];
   isWardrobeLoading: boolean;
+  wishlistIds: string[];
+
+  // 기본 체형(마네킹) 선택
+  selectedBaseModel: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null;
 
   // 체형 조각(Sculpting) 스케일 조절자
   sculptModifiers: { width: number, height: number, depth: number };
@@ -118,18 +86,20 @@ export interface FittingState {
   showToast: (message: string) => void;
   dismissToast: () => void;
   setActiveTab: (tab: '3d' | '2d') => void;
-  setActiveTool: (tool: 'VIEW' | 'SCULPT' | null) => void;
-  setCurrentPage: (page: 'HOME' | 'ATELIER' | 'ARCHIVE' | 'ABOUT') => void;
+  setActiveTool: (tool: 'MODEL' | 'VIEW' | 'SCULPT' | null) => void;
+  setCurrentPage: (page: 'HOME' | 'SHOP' | 'ATELIER' | 'ARCHIVE' | 'ABOUT') => void;
   saveToArchive: (imageUrl: string, description: string, tags: string[]) => void;
   removeFromArchive: (id: string | number) => void;
   setSculptModifier: (axis: 'width' | 'height' | 'depth', value: number) => void;
   resetSculptModifiers: () => void;
   toggleDarkMode: () => void;
   setCurrentJobId: (jobId: string | null) => void;
+  setSelectedBaseModel: (modelType: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null) => void;
   
-  // 옷장 메서드
+  // 옷장 및 위시리스트 메서드
   fetchWardrobe: () => Promise<void>;
   addWardrobeItem: (item: WardrobeItem) => void;
+  toggleWishlist: (id: string) => void;
 }
 
 export const useFittingStore = create<FittingState>((set) => ({
@@ -149,12 +119,14 @@ export const useFittingStore = create<FittingState>((set) => ({
   loadingStage: 0,
   toastMessage: null,
   activeTab: '3d',
-  activeTool: 'VIEW',
+  activeTool: 'MODEL',
+  selectedBaseModel: null,
   currentPage: 'HOME',
   isDarkMode: false, // 라이트 모드 기본 시작
   savedArchives: INITIAL_ARCHIVES,
   wardrobeItems: [],
   isWardrobeLoading: false,
+  wishlistIds: [],
   sculptModifiers: { width: 1.0, height: 1.0, depth: 1.0 },
   currentJobId: null,
 
@@ -196,6 +168,7 @@ export const useFittingStore = create<FittingState>((set) => ({
   resetSculptModifiers: () => set({ sculptModifiers: { width: 1.0, height: 1.0, depth: 1.0 } }),
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
   setCurrentJobId: (jobId) => set({ currentJobId: jobId }),
+  setSelectedBaseModel: (modelType) => set({ selectedBaseModel: modelType }),
   
   fetchWardrobe: async () => {
     set({ isWardrobeLoading: true });
@@ -206,4 +179,10 @@ export const useFittingStore = create<FittingState>((set) => ({
   addWardrobeItem: (item) => set((state) => ({
     wardrobeItems: [item, ...state.wardrobeItems]
   })),
+  toggleWishlist: (id) => set((state) => {
+    if (state.wishlistIds.includes(id)) {
+      return { wishlistIds: state.wishlistIds.filter(wId => wId !== id) };
+    }
+    return { wishlistIds: [...state.wishlistIds, id] };
+  })
 }))
