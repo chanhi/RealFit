@@ -38,6 +38,8 @@ services:
       - ./ai_server/dummy:/app/shared/dummy
       # 임시 결과물을 저장할 워크스페이스 볼륨 추가
       - ./storage/ai_workspace:/app/temp_workspace
+      # IDM-VTON 모델 다운로드 캐시 볼륨
+      - ./ai_server/models_cache:/app/shared/models_cache
     environment:
       - PYTHONUNBUFFERED=1
     deploy:
