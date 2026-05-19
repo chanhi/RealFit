@@ -263,12 +263,14 @@ export const FittingPanel: React.FC = () => {
         setActiveTab('3d')
         if (useFittingStore.getState().currentPage !== 'ATELIER') {
           showToast('✅ 3D 피팅 결과가 생성되었습니다!')
+          useFittingStore.setState({ showCompleteModal: true, completeModalType: '3d' })
         }
       } else {
         setVtonResultUrl(url)
         setActiveTab('2d')
         if (useFittingStore.getState().currentPage !== 'ATELIER') {
           showToast('✅ 가상 피팅이 완료되었습니다!')
+          useFittingStore.setState({ showCompleteModal: true, completeModalType: '2d' })
         }
       }
     } catch (e) {
