@@ -100,6 +100,12 @@ export interface FittingState {
   fetchWardrobe: () => Promise<void>;
   addWardrobeItem: (item: WardrobeItem) => void;
   toggleWishlist: (id: string) => void;
+
+  // 비동기 합성 완료 모달 상태
+  showCompleteModal: boolean;
+  completeModalType: '2d' | '3d' | null;
+  setShowCompleteModal: (show: boolean) => void;
+  setCompleteModalType: (type: '2d' | '3d' | null) => void;
 }
 
 export const useFittingStore = create<FittingState>((set) => ({
@@ -129,6 +135,8 @@ export const useFittingStore = create<FittingState>((set) => ({
   wishlistIds: [],
   sculptModifiers: { width: 1.0, height: 1.0, depth: 1.0 },
   currentJobId: null,
+  showCompleteModal: false,
+  completeModalType: null,
 
   setPhoto: (file, previewUrl) => set({ photoFile: file, photoPreviewUrl: previewUrl }),
   setClothing: (file, previewUrl) => set({ clothingFile: file, clothingPreviewUrl: previewUrl }),
@@ -184,5 +192,7 @@ export const useFittingStore = create<FittingState>((set) => ({
       return { wishlistIds: state.wishlistIds.filter(wId => wId !== id) };
     }
     return { wishlistIds: [...state.wishlistIds, id] };
-  })
+  }),
+  setShowCompleteModal: (show) => set({ showCompleteModal: show }),
+  setCompleteModalType: (type) => set({ completeModalType: type })
 }))

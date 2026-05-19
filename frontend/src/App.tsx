@@ -62,7 +62,8 @@ function App() {
     currentPage, setCurrentPage, activeTab, setActiveTab, 
     activeTool, setActiveTool, modelUrl, vtonResultUrl, 
     isLoading, loadingType, loadingStage, toastMessage, dismissToast,
-    isDarkMode, toggleDarkMode
+    isDarkMode, toggleDarkMode,
+    showCompleteModal, completeModalType, setShowCompleteModal
   } = useFittingStore()
 
   // Auto-dismiss toast after 5 seconds
@@ -293,6 +294,48 @@ function App() {
         </div>
         <span>© 2026 RealFIT. All rights reserved.</span>
       </footer>
+
+      {/* 백그라운드 피팅 완료 알림 럭셔리 다이얼로그 모달 */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-white/10 p-8 rounded-2xl max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
+            {/* 럭셔리 바운스 골드 아이콘 */}
+            <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center mb-6 shadow-inner animate-bounce">
+              <span className="text-3xl">👑</span>
+            </div>
+            
+            <h3 className="font-serif text-xl font-bold text-gray-900 dark:text-white mb-2 tracking-wide">
+              {completeModalType === '3d' ? '3D 아바타 완성!' : '가상 피팅 완성!'}
+            </h3>
+            
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed mb-6">
+              나만을 위한 맞춤형 {completeModalType === '3d' ? '3D 피팅 아바타' : '2D 가상 착용 샷'}이 백그라운드에서 성공적으로 완성되었습니다! 지금 아틀리에 피팅 센터에서 결과를 확인해 보세요.
+            </p>
+            
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => {
+                  setCurrentPage('ATELIER');
+                  if (completeModalType) {
+                    setActiveTab(completeModalType);
+                  }
+                  setShowCompleteModal(false);
+                }}
+                className="w-full py-3 bg-zinc-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 text-white dark:text-amber-950 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98] shadow-md shadow-amber-950/10"
+              >
+                결과 보러 가기 (View Result)
+              </button>
+              
+              <button
+                onClick={() => setShowCompleteModal(false)}
+                className="w-full py-3 bg-transparent hover:bg-gray-100 dark:hover:bg-zinc-800/60 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+              >
+                나중에 확인하기 (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
