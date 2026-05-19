@@ -1,0 +1,13 @@
+# AI Models & Cache (가장 중요: 10GB 모델 캐시 빌드 제외)
+models_cache/
+
+# Dummy & Temp Files (공유 볼륨이므로 빌드에 포함할 필요 없음)
+dummy/
+temp_workspace/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Environment Variables
+.env
