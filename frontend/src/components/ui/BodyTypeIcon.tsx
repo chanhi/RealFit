@@ -14,7 +14,7 @@ const COLORS: Record<string, string> = {
 }
 
 export const BodyTypeIcon: React.FC<BodyTypeIconProps> = ({ type, selected = false, className = '' }) => {
-  const fill = selected ? '#FFFFFF' : COLORS[type]
+  const fill = selected ? 'currentColor' : COLORS[type]
 
   return (
     <svg className={className} viewBox="0 0 40 72" fill={fill}>
