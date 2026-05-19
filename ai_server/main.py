@@ -6,7 +6,7 @@ import uvicorn
 
 app = FastAPI(title="RealFit AI Server")
 
-# 공유 볼륨 내 더미 파일 경로
+# Dummy file paths inside shared volume
 DUMMY_DIR = "/app/shared/dummy"
 DUMMY_GLB_URL = "http://localhost/static/result.glb"
 DUMMY_OBJ_URL = "http://localhost/static/sample.obj"
