@@ -1,9 +1,8 @@
 import { useEffect } from 'react'
 import { MannequinViewer } from './components/canvas/MannequinViewer'
-import { UploadPanel } from './components/ui/UploadPanel'
+import { FittingPanel } from './components/ui/FittingPanel'
 import { SculptPanel } from './components/ui/SculptPanel'
 import { HomePanel } from './components/ui/HomePanel'
-import { ModelPanel } from './components/ui/ModelPanel'
 import { ShopPanel } from './components/ui/ShopPanel'
 import { ArchivePanel } from './components/ui/ArchivePanel'
 import { AboutPanel } from './components/ui/AboutPanel'
@@ -158,13 +157,12 @@ function App() {
         {/* Left Tool Sidebar */}
         <aside className="w-16 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-white/5 flex flex-col items-center py-6 gap-6 z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.1)] dark:shadow-none transition-colors duration-500">
           {[
-            { id: 'MODEL', icon: '👤', label: 'MODEL' },
-            { id: 'VIEW', icon: '👁️', label: 'VIEW' },
+            { id: 'FITTING', icon: '🧥', label: 'FITTING' },
             { id: 'SCULPT', icon: '🔧', label: 'SCULPT' },
           ].map((tool) => (
             <button
               key={tool.id}
-              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as 'MODEL' | 'VIEW' | 'SCULPT')}
+              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as 'FITTING' | 'SCULPT')}
               className={`flex flex-col items-center gap-1 transition-colors group relative ${activeTool === tool.id ? 'text-zinc-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
               title={activeTool === tool.id ? '패널 닫기' : '패널 열기'}
             >
@@ -180,8 +178,7 @@ function App() {
         {/* Left Upload/Tool Panel */}
         <aside className={`${activeTool ? 'w-[420px] border-r' : 'w-0 border-transparent'} bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/5 overflow-x-hidden overflow-y-auto z-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] shrink-0`}>
           <div className="w-[420px] h-full">
-            {activeTool === 'MODEL' && <ModelPanel />}
-            {activeTool === 'VIEW' && <UploadPanel />}
+            {activeTool === 'FITTING' && <FittingPanel />}
             {activeTool === 'SCULPT' && <SculptPanel />}
           </div>
         </aside>

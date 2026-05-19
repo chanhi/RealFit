@@ -21,3 +21,4 @@ def health_check():
     """서버 상태 확인 API"""
     return {"status": "AI Server is running"}
 
+

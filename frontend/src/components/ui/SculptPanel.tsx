@@ -33,9 +33,9 @@ export const SculptPanel: React.FC = () => {
         <div className="mt-10 py-16 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-500 transition-colors">
           <span className="text-4xl mb-3 grayscale opacity-50">📏</span>
           <p className="text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-2">No Data Available</p>
-          <p className="text-xs">상단의 VIEW 탭에서 3D 아바타를 먼저 생성해 주세요.</p>
+          <p className="text-xs">상단의 FITTING 탭에서 3D 아바타를 먼저 생성해 주세요.</p>
           <button 
-            onClick={() => setActiveTool('VIEW')}
+            onClick={() => setActiveTool('FITTING')}
             className="mt-6 px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-black dark:hover:bg-zinc-200 transition-colors shadow-sm"
           >
             Go to Upload

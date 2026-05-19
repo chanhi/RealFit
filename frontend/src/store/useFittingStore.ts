@@ -53,7 +53,7 @@ export interface FittingState {
   loadingStage: number; // 0~3
   toastMessage: string | null;
   activeTab: '3d' | '2d';
-  activeTool: 'MODEL' | 'VIEW' | 'SCULPT' | null;
+  activeTool: 'FITTING' | 'SCULPT' | null;
   
   // 라우팅
   currentPage: 'HOME' | 'SHOP' | 'ATELIER' | 'ARCHIVE' | 'ABOUT';
@@ -86,7 +86,7 @@ export interface FittingState {
   showToast: (message: string) => void;
   dismissToast: () => void;
   setActiveTab: (tab: '3d' | '2d') => void;
-  setActiveTool: (tool: 'MODEL' | 'VIEW' | 'SCULPT' | null) => void;
+  setActiveTool: (tool: 'FITTING' | 'SCULPT' | null) => void;
   setCurrentPage: (page: 'HOME' | 'SHOP' | 'ATELIER' | 'ARCHIVE' | 'ABOUT') => void;
   saveToArchive: (imageUrl: string, description: string, tags: string[]) => void;
   removeFromArchive: (id: string | number) => void;
@@ -119,7 +119,7 @@ export const useFittingStore = create<FittingState>((set) => ({
   loadingStage: 0,
   toastMessage: null,
   activeTab: '3d',
-  activeTool: 'MODEL',
+  activeTool: 'FITTING',
   selectedBaseModel: null,
   currentPage: 'HOME',
   isDarkMode: false, // 라이트 모드 기본 시작

@@ -146,7 +146,7 @@ export const generate3DModel = async (
   } catch (e) {
     console.warn('Backend unavailable for 3D, using local mock OBJ:', e);
     // 폴백 시 임시 jobId 반환
-    return { url: '/mock/my_A_pose_mannequin%20(1)%20(1).obj', jobId: `mock-${Date.now()}`, measurements: mockMeasurements };
+    return { url: '/mock/mannequin.obj', jobId: `mock-${Date.now()}`, measurements: mockMeasurements };
   }
 };
 
