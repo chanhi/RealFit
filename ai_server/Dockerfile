@@ -33,5 +33,8 @@ RUN mkdir -p 4D-Humans/data
 # 로컬에 있는 파일을 이름 변경이나 하위 폴더 없이, 요구하는 위치에 그대로 복사합니다.
 RUN cp data/basicModel_neutral_lbs_10_207_0_v1.0.0.pkl 4D-Humans/data/basicModel_neutral_lbs_10_207_0_v1.0.0.pkl
 
+# HuggingFace 모델 캐시 경로 지정
+ENV HF_HOME=/app/shared/models_cache
+
 EXPOSE 9002
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "9002", "--reload"]

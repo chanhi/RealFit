@@ -135,4 +135,6 @@ self.device = torch.device("cpu")
 self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ```
 
+- docker-compose의 ai-server에서 `AI_MODE=test # 모드 설정 (test: 더미 고속 반환 / prod: 실제 AI 모델 연산 및 GPU 활성화)`
+
 참고사항: 실서버(EC2 등)에 배포할 때는 호스트 머신에 NVIDIA 그래픽 드라이버와 nvidia-container-toolkit이 올바르게 설치되어 있어야 docker-compose.yml의 GPU 할당(deploy 옵션)이 정상 작동합니다.

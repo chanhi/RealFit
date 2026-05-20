@@ -6,11 +6,17 @@ import aiofiles
 
 from services.human_service import HumanService
 from services.garment_service import GarmentService
+from services.vton import VtonService
+from services.fal import FalService
+#테스트용
+from pydantic import BaseModel
 
 app = FastAPI(title="RealFit AI Server")
 
 human_service = HumanService()
 garment_service = GarmentService()
+vton_service = VtonService()
+fal_service = FalService()
 
 # Nginx와 공유하는 볼륨 경로[cite: 3, 4]
 WORKSPACE_DIR = Path("/app/shared/dummy")
@@ -65,3 +71,37 @@ async def preprocess_human(file: UploadFile = File(...)):
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Human Processing Error: {str(e)}")
+    
+
+# 요청 데이터 구조 정의
+class PreprocessRequest(BaseModel):
+    front_file_url: str
+    cloth_file_url: str
+    mannequin_mesh_url: str
+
+@app.post("/ai/preprocess/edit")
+async def preprocess_vton(data: PreprocessRequest):
+    """옷 합성"""
+    try:
+        
+        # 1단계: vton 합성
+        vton_img_path = vton_service.vton(data.front_file_url, data.cloth_file_url)
+
+        # 2단계: 3D 모델 생성
+        fal_img_path = fal_service.to3D(vton_img_path)
+
+        # 3단계: 3D 마네킹 보정
+        job_id = str(uuid.uuid4())[:8]
+        corrected_model_url = human_service.correct_3d_mannequin(
+            fal_img_path, 
+            data.mannequin_mesh_url, 
+            job_id
+        )
+
+        return JSONResponse(content={
+            "status": "success",
+            "job_id": job_id,
+            "url": corrected_model_url
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"VTON processing failed: {str(e)}")
