@@ -1,4 +1,5 @@
 ## Commit 규칙
+
 ```
 //Header, Body, Footer는 빈 행으로 구분한다
 Type(스코프): 주제(제목) // Header
@@ -7,16 +8,17 @@ Type(스코프): 주제(제목) // Header
 
 바닥글 // Footer
 ```
-타입 이름	내용
-feat	새로운 기능에 대한 commit
-fix	버그 수정에 대한 commit
-build	빌드 관련 파일 수정 or 모듈 설치 또는 삭제에 대한 commit
-chore	기타 commit
-ci	ci 관련 설정 수정에 대한 commit
-docs	문서 수정에 대한 commit
-refactor	코드 리팩토링에 대한 commit
-test	테스트 코드 수정에 대한 commit
-pref	성능 개선에 대한 commit
+
+타입 이름 내용
+feat 새로운 기능에 대한 commit
+fix 버그 수정에 대한 commit
+build 빌드 관련 파일 수정 or 모듈 설치 또는 삭제에 대한 commit
+chore 기타 commit
+ci ci 관련 설정 수정에 대한 commit
+docs 문서 수정에 대한 commit
+refactor 코드 리팩토링에 대한 commit
+test 테스트 코드 수정에 대한 commit
+pref 성능 개선에 대한 commit
 
 ## 현재 상태
 
@@ -66,6 +68,7 @@ curl -X POST "http://localhost:8000/api/v1/jobs" \
 
 - `docker compose down`
 - `docker compose up -d --build`
+- `docker compose build --no-cache ai_server`: 캐시된 빌드내용까지 완전 처음부터 빌드
 - `docker compose up -d`
 
 - 빌드 후 확인용 코드
