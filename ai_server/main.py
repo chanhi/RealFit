@@ -20,3 +20,5 @@ app.include_router(tripo_router.router, prefix="/ai/tripo", tags=["3D Generation
 def health_check():
     """서버 상태 확인 API"""
     return {"status": "AI Server is running"}
+
+

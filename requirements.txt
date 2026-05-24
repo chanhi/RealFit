@@ -4,5 +4,6 @@ python-multipart
 sqlalchemy
 psycopg2-binary
 python-dotenv
-pydantic
 httpx
+Pillow
+pillow-avif-plugin

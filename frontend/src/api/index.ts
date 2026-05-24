@@ -30,31 +30,11 @@ function mapCategoryToBackend(frontendCategory: string): string {
  * POST /api/v1/jobs - 사용자 이미지 + 의류 이미지 + 카테고리를 전송하여 Job을 생성한다.
  */
 export const createFittingJob = async (
-  userImage: File,
-  clothImage: File,
-  category: string = 'top'
+  _userImage: File,
+  _clothImage: File,
+  _category: string = 'top'
 ): Promise<string> => {
-  const formData = new FormData();
-  formData.append('user_image', userImage);
-  formData.append('cloth_image', clothImage);
-  formData.append('category', mapCategoryToBackend(category));
-
-  console.log(`--- [API] POST ${API_BASE}/api/v1/jobs (category: ${category}) ---`);
-
-  const response = await fetch(`${API_BASE}/api/v1/jobs`, {
-    method: 'POST',
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Job creation failed (${response.status}): ${errorText}`);
-  }
-
-  const result = await response.json();
-  const jobId = result.data.job_id;
-  console.log(`--- [API] Job created: ${jobId} ---`);
-  return jobId;
+  throw new Error('createFittingJob is deprecated. Use the 2-stage pipeline (/mannequin -> /fitting) instead.');
 };
 
 /**
@@ -113,8 +93,8 @@ export const getJobResult = async (jobId: string): Promise<string> => {
   const fullUrl = resultPath.startsWith('http')
     ? resultPath
     : resultPath.startsWith('/static/')
-      ? `http://localhost${resultPath}`
-      : `http://localhost/static/${resultPath}`;
+      ? resultPath
+      : `/static/${resultPath}`;
 
   console.log(`--- [API] Job ${jobId} 최종 결과 URL: ${fullUrl} ---`);
   return fullUrl;
@@ -128,25 +108,24 @@ export const getJobResult = async (jobId: string): Promise<string> => {
  */
 export const generate3DModel = async (
   userPhoto: File
-): Promise<{ url: string, measurements?: BodyMeasurements }> => {
+): Promise<{ url: string, jobId: string, measurements?: BodyMeasurements }> => {
   const formData = new FormData();
   formData.append('user_image', userPhoto);
 
-  console.log('--- [API Request: Generate 3D Model] ---');
+  console.log('--- [API Request: Generate 3D Model (Mannequin)] ---');
 
   const mockMeasurements: BodyMeasurements = {
     height_cm: 175.0,
     model_height_unit: 1.82,
     scale_factor: 175.0 / 1.82,
     shoulder_width_cm: 45.0,
-    chest_width_cm: 30.5,
+    chest_width_cm: 50.0,
     waist_width_cm: 26.0,
     hip_width_cm: 33.1
   };
 
   try {
-    // Try backend endpoint first
-    const response = await fetch(`${API_BASE}/api/v1/generate-3d`, {
+    const response = await fetch(`${API_BASE}/api/v1/jobs/mannequin`, {
       method: 'POST',
       body: formData,
     });
@@ -154,15 +133,22 @@ export const generate3DModel = async (
     if (!response.ok) throw new Error(`API request failed: ${response.status}`);
 
     const data = await response.json();
-    const fullUrl = data.model_url.startsWith('http')
-      ? data.model_url
-      : `${API_BASE}${data.model_url}`;
+    const resultData = data.data;
+    const jobId = resultData.job_id;
+    const modelUrl = resultData.mannequin_obj_url;
+    
+    const fullUrl = modelUrl.startsWith('http')
+      ? modelUrl
+      : modelUrl.startsWith('/static/')
+        ? modelUrl
+        : `${API_BASE}${modelUrl}`;
 
-    console.log('--- [API Response: Success] 3D Model URL:', fullUrl);
-    return { url: fullUrl, measurements: data.measurements || mockMeasurements };
+    console.log('--- [API Response: Success] 3D Model URL:', fullUrl, 'Job ID:', jobId);
+    return { url: fullUrl, jobId: jobId, measurements: mockMeasurements };
   } catch (e) {
     console.warn('Backend unavailable for 3D, using local mock OBJ:', e);
-    return { url: '/mock/my_A_pose_mannequin%20(1)%20(1).obj', measurements: mockMeasurements };
+    // 폴백 시 임시 jobId 반환
+    return { url: '/mock/mannequin.obj', jobId: `mock-${Date.now()}`, measurements: mockMeasurements };
   }
 };
 
@@ -172,23 +158,48 @@ export const generate3DModel = async (
  * 백엔드 연결 실패 시 에러를 던진다.
  */
 export const generateVTONResult = async (
-  userPhoto: File,
+  jobId: string,
   clothingPhoto: File,
   _customColor: string,
   category: string = 'top'
-): Promise<string> => {
-  console.log('--- [API] Starting VTON Pipeline (Job-based) ---');
+): Promise<{ vtonUrl: string; modelUrl: string }> => {
+  console.log(`--- [API Request: Generate VTON Fitting] Job ID: ${jobId} ---`);
+
+  const formData = new FormData();
+  formData.append('job_id', jobId);
+  formData.append('cloth_image', clothingPhoto);
+  formData.append('category', mapCategoryToBackend(category));
 
   try {
-    // Step 1: Job 생성
-    const jobId = await createFittingJob(userPhoto, clothingPhoto, category);
+    const response = await fetch(`${API_BASE}/api/v1/jobs/fitting`, {
+      method: 'POST',
+      body: formData,
+    });
 
-    // Step 2: 상태 폴링 (최대 120초)
-    await pollJobStatus(jobId, 120000);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Fitting request failed (${response.status}): ${errorText}`);
+    }
 
-    // Step 3: 결과 조회
-    const resultUrl = await getJobResult(jobId);
-    return resultUrl;
+    const data = await response.json();
+    const resultData = data.data;
+    const vtonPath = resultData.result_image_path || '';
+    const modelPath = resultData.model_mesh_url || '';
+
+    const vtonUrl = vtonPath.startsWith('http')
+      ? vtonPath
+      : vtonPath.startsWith('/static/')
+        ? vtonPath
+        : `/static/${vtonPath}`;
+
+    const modelUrl = modelPath.startsWith('http')
+      ? modelPath
+      : modelPath.startsWith('/static/')
+        ? modelPath
+        : `/static/${modelPath}`;
+
+    console.log(`--- [API Response: Success] VTON Result URL: ${vtonUrl}, 3D Model URL: ${modelUrl} ---`);
+    return { vtonUrl, modelUrl };
   } catch (e) {
     console.error('VTON Pipeline failed:', e);
     throw e;
@@ -196,15 +207,29 @@ export const generateVTONResult = async (
 };
 
 /**
- * 가상의 사이즈 추천 API 목업
- * (나중에 실제 백엔드 연동 시 endpoint 호출 로직으로 변경 가능합니다)
+ * 옷 사이즈 추천 API 호출
+ * 체형(가슴 너비) 데이터를 바탕으로 추천 사이즈와 그에 맞는 상품 목록을 가져옵니다.
  */
 export const getSizeRecommendation = async (
   chestWidth: number
-): Promise<{ size: string; confidence: number; detail: string }> => {
-  return new Promise((resolve) => {
-    // API 레이턴시 시뮬레이션
-    setTimeout(() => {
+): Promise<{ size: string; confidence: number; detail: string; products?: any[] }> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/products/appropriate-size?chest_cm=${chestWidth}`);
+    if (!response.ok) {
+      throw new Error(`Size API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return {
+      size: data.recommendation.size,
+      confidence: 85, // 백엔드에서 내려주지 않는 경우 고정값 또는 임의 계산
+      detail: data.recommendation.detail,
+      products: data.products
+    };
+  } catch (error) {
+    console.error('Failed to get size recommendation from backend, falling back to mock:', error);
+    // 백엔드 에러 시 기존 Mock 로직(폴백)으로 동작
+    return new Promise((resolve) => {
       let size = 'XXL';
       let confidence = 85;
       let detail = '체형을 넉넉하게 감싸는 오버핏을 추천합니다.';
@@ -216,8 +241,8 @@ export const getSizeRecommendation = async (
       else if (chestWidth < 36) { size = 'XL'; detail = '트렌디하게 떨어지는 오버핏 실루엣입니다.'; confidence = 83; }
 
       resolve({ size, confidence, detail });
-    }, 600);
-  });
+    });
+  }
 };
 
 /**

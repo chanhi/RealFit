@@ -114,22 +114,7 @@ export const MOCK_PRODUCTS: Product[] = [
     imageUrl: 'https://cdn.dummyjson.com/product-images/womens-dresses/dress-pea/1.webp',
     category: 'Misc'
   },
-  {
-    id: 'p14',
-    name: 'Nike Air Jordan 1 Red/Black',
-    brand: 'NIKE',
-    price: 245000,
-    imageUrl: 'https://cdn.dummyjson.com/product-images/mens-shoes/nike-air-jordan-1-red-and-black/1.webp',
-    category: 'Misc'
-  },
-  {
-    id: 'p15',
-    name: 'Puma Future Rider Trainers',
-    brand: 'PUMA',
-    price: 125000,
-    imageUrl: 'https://cdn.dummyjson.com/product-images/mens-shoes/puma-future-rider-trainers/1.webp',
-    category: 'Misc'
-  },
+
   {
     id: 'p16',
     name: 'Corset With Black Skirt',
