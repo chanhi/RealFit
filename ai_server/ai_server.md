@@ -219,3 +219,39 @@ with open("AI_SERVER_CLOUD_DEPLOYMENT_GUIDE.md", "w", encoding="utf-8") as f:
 f.write(deployment_guide_content)
 
 print("Files successfully generated.")
+
+## 🤖 AI Server Architecture (v2.0)
+
+본 AI 서버는 확장성과 유지보수성을 위해 **계층형 아키텍처(Layered Architecture)** 로 리팩토링 되었습니다.
+
+### 📂 폴더 구조
+
+- `main.py`: 앱 초기화 및 라우터 등록을 담당하는 컨트롤 타워
+- `routers/`: 도메인별 API 엔드포인트 모음 (`preprocess`, `vton`, `tripo`)
+- `schemas/`: Pydantic을 활용한 API 요청/응답 규격 (DTO) 중앙화
+- `services/`: VTON 합성, 3D 모델 생성 등 핵심 비즈니스 로직
+
+### 🔗 주요 API 엔드포인트 (Endpoints)
+
+#### 1. 2D 가상 피팅 (VTON)
+
+- `POST /ai/vton` : 마네킹과 누끼 의류 이미지를 합성하여 2D VTON 이미지를 반환합니다.
+
+#### 2. 3D 모델링 (Tripo3D & Mesh)
+
+프론트엔드의 진행률 표시와 에러 핸들링을 위해 파이프라인이 2단계로 분리되어 있습니다.
+
+- `POST /ai/tripo/generate` : (1단계) VTON 이미지를 기반으로 초기 3D 객체(.glb)를 생성합니다.
+- `POST /ai/tripo/apply-mesh` : (2단계) 생성된 3D 객체에 사용자의 체형(Mesh) 데이터를 로컬 연산으로 반영합니다.
+
+#### 3. 전처리 (Preprocess)
+
+- `POST /ai/preprocess/human` : 전신 이미지에서 마네킹 및 매쉬 데이터를 추출합니다.
+- `POST /ai/preprocess/garment` : 의류 이미지의 배경을 제거(누끼)합니다.
+
+### ⚙️ 테스트 모드 (환경 변수)
+
+프론트엔드 연동 개발 시 무거운 AI 연산(10~15분 소요)으로 인한 병목을 방지하기 위해 `AI_MODE`를 지원합니다.
+
+- `docker-compose.yml`에서 `AI_MODE=test` 로 설정 시, 실제 연산을 건너뛰고 1초 만에 더미(Dummy) 데이터를 반환합니다.
+- 실서버 배포 및 실제 AI 결과물이 필요할 때는 `AI_MODE=prod` 로 변경 후 도커를 재시작해 주세요.

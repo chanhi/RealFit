@@ -9,16 +9,17 @@ Type(스코프): 주제(제목) // Header
 바닥글 // Footer
 ```
 
-타입 이름 내용
-feat 새로운 기능에 대한 commit
-fix 버그 수정에 대한 commit
-build 빌드 관련 파일 수정 or 모듈 설치 또는 삭제에 대한 commit
-chore 기타 commit
-ci ci 관련 설정 수정에 대한 commit
-docs 문서 수정에 대한 commit
-refactor 코드 리팩토링에 대한 commit
-test 테스트 코드 수정에 대한 commit
-pref 성능 개선에 대한 commit
+| 타입 이름 | 내용                                                     |
+| --------- | -------------------------------------------------------- |
+| feat      | 새로운 기능에 대한 commit                                |
+| fix       | 버그 수정에 대한 commit                                  |
+| build     | 빌드 관련 파일 수정 or 모듈 설치 또는 삭제에 대한 commit |
+| chore     | 기타 commit                                              |
+| ci        | ci 관련 설정 수정에 대한 commit                          |
+| docs      | 문서 수정에 대한 commit                                  |
+| refactor  | 코드 리팩토링에 대한 commit                              |
+| test      | 테스트 코드 수정에 대한 commit                           |
+| pref      | 성능 개선에 대한 commit                                  |
 
 ## 현재 상태
 
@@ -136,5 +137,135 @@ self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ```
 
 - docker-compose의 ai-server에서 `AI_MODE=test # 모드 설정 (test: 더미 고속 반환 / prod: 실제 AI 모델 연산 및 GPU 활성화)`
+
+#### `AI_MODE=test` 모드에서 각 api 입력 데이터 예시
+
+---
+
+### 🧪 0. 테스트 사전 준비 (더미 파일 세팅)
+
+테스트 모드에서는 연산을 건너뛰고 기존 파일을 복사하여 반환하므로, 로컬 컴퓨터의 `ai_server/dummy/` 폴더 안에 아래의 파일들이 미리 들어있어야 에러 없이 완벽하게 작동합니다.
+
+- `test_front.png` (전신 마네킹 이미지)
+- `test_cloth.png` (의류 이미지)
+- `vton_result.png` (VTON 테스트 모드에서 반환할 가상의 결과 이미지)
+- `result.glb` (Tripo3D 테스트 모드에서 반환할 가상의 3D 모델 파일)
+
+---
+
+### 🚀 1. 전처리 API 테스트 (Preprocess)
+
+브라우저에서 FastAPI Docs(`http://localhost:9002/docs`)에 접속하여 진행합니다.
+
+#### ① 마네킹 및 매쉬 추출 (`POST /ai/preprocess/human`)
+
+- **목적:** 사용자 사진에서 마네킹 이미지와 3D 매쉬 체형 데이터를 추출합니다.
+- **Request Body:**
+
+```json
+{
+  "image_url": "/static/test_front.png"
+}
+```
+
+- **기대 결과:** 기존 `HumanService`의 로직에 따라 추출된 데이터 경로(또는 더미 응답)가 반환됩니다.
+
+#### ② 의류 누끼 처리 (`POST /ai/preprocess/garment`)
+
+- **목적:** 옷 이미지의 배경을 제거합니다.
+- **Request Body:**
+
+```json
+{
+  "image_url": "/static/test_cloth.png"
+}
+```
+
+- **기대 결과:** 누끼 처리된 의류 이미지의 정적 URL이 반환됩니다.
+
+---
+
+### 👕 2. 2D 가상 피팅 API 테스트 (VTON)
+
+리팩토링으로 가장 깔끔해진 핵심 엔드포인트입니다.
+
+#### ① VTON 합성 (`POST /ai/vton`)
+
+- **목적:** 전처리된 마네킹 이미지와 의류 이미지를 합성합니다.
+- **Request Body:**
+
+```json
+{
+  "front_file_url": "/static/test_front.png",
+  "cloth_file_url": "/static/test_cloth.png"
+}
+```
+
+- **기대 결과:** 테스트 모드이므로 1초 만에 `vton_result.png`를 복사한 새로운 URL을 반환합니다.
+
+```json
+{
+  "status": "success",
+  "url": "/static/1a2b3c4d_vton_result.png"
+}
+```
+
+---
+
+### 🧊 3. 3D 모델링 API 테스트 (Tripo3D & Mesh)
+
+프론트엔드의 진행률 관리를 위해 2단계로 분리된 파이프라인입니다.
+
+#### ① 초기 3D 객체 생성 (`POST /ai/tripo/generate`)
+
+- **목적:** VTON 결과 이미지를 바탕으로 기본 3D 모델(GLB)을 생성합니다.
+- **Request Body:** (`job_id`는 프론트엔드에서 세션을 구분하기 위해 넘겨주는 임의의 문자열입니다.)
+
+```json
+{
+  "job_id": "test_job_001",
+  "vton_image_url": "/static/vton_result.png"
+}
+```
+
+- **기대 결과:** 테스트 모드에 의해 `result.glb`가 복사되어 반환됩니다.
+
+```json
+{
+  "status": "success",
+  "step": "generation",
+  "model_3d_url": "/static/test_job_001_tripo_result.glb"
+}
+```
+
+#### ② 체형 데이터(Mesh) 반영 (`POST /ai/tripo/apply-mesh`)
+
+- **목적:** 방금 생성된 3D 객체에 사용자의 고유 체형(매쉬) 데이터를 입혀 최종 변형합니다.
+- **Request Body:** (`mannequin_mesh_url`은 실제 파일이 없어도 문자열만 형식을 맞춰주면 테스트 모드에서 통과됩니다.)
+
+```json
+{
+  "job_id": "test_job_001",
+  "model_3d_url": "/static/test_job_001_tripo_result.glb",
+  "mannequin_mesh_url": "/static/dummy_mesh.json"
+}
+```
+
+- **기대 결과:**
+
+```json
+{
+  "status": "success",
+  "step": "mesh_applied",
+  "final_model_url": "/static/test_job_001_final_mesh.glb"
+}
+```
+
+---
+
+### 💡 문제 발생 시 체크리스트
+
+- **500 Internal Server Error 발생 시:** 가장 높은 확률로 `dummy` 폴더 안에 요청한 이름의 파일(`test_front.png`, `vton_result.png` 등)이 없기 때문입니다. 더미 폴더에 파일이 잘 들어있는지 확인해 주세요.
+- **`AI_MODE`가 변경되지 않는 경우:** 코드나 환경 변수를 수정했다면 반드시 `docker compose down` 후 `docker compose build ai_server`를 통해 재빌드를 거쳐야 새로운 세팅이 반영됩니다.
 
 참고사항: 실서버(EC2 등)에 배포할 때는 호스트 머신에 NVIDIA 그래픽 드라이버와 nvidia-container-toolkit이 올바르게 설치되어 있어야 docker-compose.yml의 GPU 할당(deploy 옵션)이 정상 작동합니다.
