@@ -26,6 +26,7 @@ services:
       - "8000:8000"
     volumes:
       - ./storage:/app/storage
+      - ./ai_server/dummy:/app/shared/dummy
 
   ai_server:
     build:
@@ -42,7 +43,7 @@ services:
       - ./ai_server/models_cache:/app/shared/models_cache
     environment:
       - PYTHONUNBUFFERED=1
-      - AI_MODE=prod # 모드 설정 (test: 더미 고속 반환 / prod: 실제 AI 모델 연산 및 GPU 활성화)
+      - AI_MODE=test # 모드 설정 (test: 더미 고속 반환 / prod: 실제 AI 모델 연산 및 GPU 활성화)
     deploy:
       resources:
         reservations:
@@ -60,6 +61,8 @@ services:
     restart: always
     ports:
       - "1010:80"
+    volumes:
+      - ./ai_server/dummy:/usr/share/nginx/html/static:ro
     depends_on:
       - backend
       - ai_server

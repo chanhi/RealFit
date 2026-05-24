@@ -18,6 +18,8 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 RUN pip install --no-cache-dir fvcore iopath
 ENV MAX_JOBS=1
+ENV FORCE_CUDA=1
+ENV TORCH_CUDA_ARCH_LIST="8.6"
 RUN pip install --no-cache-dir --no-build-isolation "git+https://github.com/facebookresearch/pytorch3d.git"
 RUN pip install --no-cache-dir --no-build-isolation chumpy==0.70
 

@@ -247,26 +247,32 @@ export const FittingPanel: React.FC = () => {
     ]
 
     try {
-      let url = ''
+      let vtonUrl = ''
+      let modelUrl = ''
       if (!currentJobId || currentJobId.startsWith('mock-')) {
         // 더미 데이터 폴백: 백엔드를 거치지 않고 로컬 결과 반환 (기본 마네킹용)
         await new Promise(resolve => setTimeout(resolve, 3000))
-        url = '/mock/result.glb'
+        vtonUrl = '/mock/result.glb'
+        modelUrl = '/mock/result.glb'
       } else {
-        url = await generateVTONResult(currentJobId, clothingFile, 'transparent')
+        const res = await generateVTONResult(currentJobId, clothingFile, 'transparent')
+        vtonUrl = res.vtonUrl
+        modelUrl = res.modelUrl
       }
       timers.forEach(clearTimeout)
 
-      // 백엔드가 3D .glb 파일을 반환하는 경우, 3D 뷰어로 연결
-      if (url.toLowerCase().endsWith('.glb')) {
-        useFittingStore.getState().setModelUrl(url)
+      // 양쪽 결과물을 모두 저장소에 보관합니다.
+      if (vtonUrl) setVtonResultUrl(vtonUrl)
+      if (modelUrl) useFittingStore.getState().setModelUrl(modelUrl)
+
+      // 3D 모델 결과가 존재하는 경우 3D 뷰어 탭을 우선 활성화하고, 2D는 2D 탭에서 확인하도록 세팅합니다.
+      if (modelUrl) {
         setActiveTab('3d')
         if (useFittingStore.getState().currentPage !== 'ATELIER') {
           showToast('✅ 3D 피팅 결과가 생성되었습니다!')
           useFittingStore.setState({ showCompleteModal: true, completeModalType: '3d' })
         }
-      } else {
-        setVtonResultUrl(url)
+      } else if (vtonUrl) {
         setActiveTab('2d')
         if (useFittingStore.getState().currentPage !== 'ATELIER') {
           showToast('✅ 가상 피팅이 완료되었습니다!')

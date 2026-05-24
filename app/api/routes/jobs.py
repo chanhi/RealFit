@@ -1,8 +1,11 @@
 import os
 import uuid
+import shutil
 import httpx
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from sqlalchemy.orm import Session
+from PIL import Image
+from io import BytesIO
 
 from app.schemas.job import JobCreateResponse, JobStatusResponse, JobResultResponse
 from app.services.job_service import (
@@ -18,6 +21,19 @@ from app.services.file_service import save_uploaded_file
 from app.db.session import get_db
 
 router = APIRouter(prefix="/api/v1/jobs", tags=["Jobs"])
+
+
+def copy_as_real_jpeg(src_path: str, dst_path: str):
+    """Convert any image format (AVIF, WebP, HEIC, etc.) to actual JPEG.
+    Browsers may upload AVIF files with .jpg extension, which OpenCV cannot read.
+    Pillow handles the decoding and re-encodes as standard JPEG."""
+    try:
+        img = Image.open(src_path)
+        img = img.convert("RGB")  # Remove alpha channel if present
+        img.save(dst_path, format="JPEG", quality=95)
+    except Exception as e:
+        print(f"⚠️ Image conversion failed, falling back to raw copy: {e}")
+        shutil.copy2(src_path, dst_path)
 
 @router.post("/mannequin")
 def create_mannequin(
@@ -54,32 +70,31 @@ def create_mannequin(
     try:
         update_job_status(db, job_id, "PROCESSING")
 
-        with open(user_save_path, "rb") as f:
-            response = httpx.post(
-                "http://ai_server:9002/ai/preprocess/human",
-                files={
-                    "file": (
-                        os.path.basename(user_save_path),
-                        f,
-                        user_image.content_type or "application/octet-stream"
-                    )
-                },
-                timeout=120.0
-            )
+        # Copy to shared dummy volume (force convert to real JPEG for OpenCV compatibility)
+        user_dummy_filename = f"{job_id}_user.jpg"
+        dummy_dir = "/app/shared/dummy"
+        os.makedirs(dummy_dir, exist_ok=True)
+        copy_as_real_jpeg(user_save_path, os.path.join(dummy_dir, user_dummy_filename))
+
+        response = httpx.post(
+            "http://ai_server:9002/ai/preprocess/human",
+            json={"image_url": f"/static/{user_dummy_filename}"},
+            timeout=120.0
+        )
 
         if response.status_code != 200:
             update_job_error(db, job_id, f"AI server failed: {response.status_code}")
             raise HTTPException(status_code=500, detail="AI server mannequin generation failed")
 
         result_data = response.json()
-        urls = result_data.get("urls", {})
+        data = result_data.get("data", {})
 
         job = update_mannequin_result(
             db=db,
             job_id=job_id,
-            mannequin_obj_url=urls.get("mannequin_obj"),
-            mannequin_mesh_url=urls.get("mannequin_mesh"),
-            front_image_url=urls.get("front_image")
+            mannequin_obj_url=data.get("mannequin_obj_url"),
+            mannequin_mesh_url=data.get("mesh_data_url"),
+            front_image_url=data.get("front_view_url")
         )
 
         update_job_status(db, job_id, "COMPLETED")
@@ -136,34 +151,76 @@ def create_fitting(
     try:
         update_job_status(db, job_id, "PROCESSING")
 
-        response = httpx.post(
-            "http://ai_server:9002/ai/fitting/generate",
+        # Copy cloth image to shared dummy folder (force convert for compatibility)
+        cloth_dummy_filename = f"{job_id}_cloth.png"
+        dummy_dir = "/app/shared/dummy"
+        os.makedirs(dummy_dir, exist_ok=True)
+        try:
+            img = Image.open(cloth_save_path)
+            img.save(os.path.join(dummy_dir, cloth_dummy_filename), format="PNG")
+        except Exception:
+            shutil.copy2(cloth_save_path, os.path.join(dummy_dir, cloth_dummy_filename))
+
+        # 1단계: 2D VTON 합성 호출
+        response_vton = httpx.post(
+            "http://ai_server:9002/ai/vton",
             json={
-                "job_id": job_id,
-                "mannequin_obj_url": job.mannequin_obj_url,
-                "mannequin_mesh_url": job.mannequin_mesh_url,
-                "cloth_image_url": cloth_save_path
+                "front_file_url": job.front_image_url,
+                "cloth_file_url": f"/static/{cloth_dummy_filename}"
             },
             timeout=120.0
         )
+        if response_vton.status_code != 200:
+            update_job_error(db, job_id, f"VTON synthesis failed: {response_vton.status_code}")
+            raise HTTPException(status_code=500, detail="VTON synthesis failed")
 
-        if response.status_code != 200:
-            update_job_error(db, job_id, f"AI fitting failed: {response.status_code}")
-            raise HTTPException(status_code=500, detail="AI fitting generation failed")
+        vton_result = response_vton.json()
+        vton_url = vton_result.get("url")
 
-        result_data = response.json()
-        data = result_data.get("data", {})
+        # 2단계: 3D 모델 생성 (Tripo3D) 호출
+        response_tripo = httpx.post(
+            "http://ai_server:9002/ai/tripo/generate",
+            json={
+                "job_id": job_id,
+                "vton_image_url": vton_url
+            },
+            timeout=120.0
+        )
+        if response_tripo.status_code != 200:
+            update_job_error(db, job_id, f"Tripo 3D generation failed: {response_tripo.status_code}")
+            raise HTTPException(status_code=500, detail="Tripo 3D generation failed")
 
-        glb_url = data.get("glb_url") or "http://localhost/static/result.glb"
+        tripo_result = response_tripo.json()
+        model_3d_url = tripo_result.get("model_3d_url")
+
+        # 3단계: 매쉬 보정 (체형 반영) 호출
+        response_apply = httpx.post(
+            "http://ai_server:9002/ai/tripo/apply-mesh",
+            json={
+                "job_id": job_id,
+                "model_3d_url": model_3d_url,
+                "mannequin_mesh_url": job.mannequin_mesh_url
+            },
+            timeout=120.0
+        )
+        if response_apply.status_code != 200:
+            update_job_error(db, job_id, f"Mesh application failed: {response_apply.status_code}")
+            raise HTTPException(status_code=500, detail="Mesh application failed")
+
+        apply_result = response_apply.json()
+        final_model_url = apply_result.get("final_model_url")
 
         job = update_job_result(
             db=db,
             job_id=job_id,
-            result_image_path=glb_url,
-            model_mesh_url=glb_url,
-            preview_image_url=glb_url,
-            task_id=data.get("task_id", job_id)
+            result_image_path=vton_url,
+            model_mesh_url=final_model_url,
+            preview_image_url=vton_url,
+            task_id=job_id
         )
+
+        update_job_status(db, job_id, "COMPLETED")
+        job = get_job(db, job_id)
 
         return {
             "success": True,

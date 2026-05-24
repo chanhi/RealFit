@@ -11,13 +11,14 @@ def main():
     args = parser.parse_args()
 
     print("🤖 VTON 모델 로딩 중 (최초 실행 시 10GB 모델 다운로드에 시간이 걸립니다!)...")
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.float16 if device == "cuda" else torch.float32
     
     try:
         # SDXL 기반 Inpaint 파이프라인 로드 (추후 실서버 배포시 공식 IDM-VTON 로직으로 교체)
         pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
             "diffusers/stable-diffusion-xl-1.0-inpainting-0.1", 
-            torch_dtype=torch.float32, 
+            torch_dtype=dtype, 
             use_safetensors=True
         )
         pipe = pipe.to(device)
@@ -25,7 +26,7 @@ def main():
         print(f"❌ 모델 로드 실패: {e}")
         return
 
-    print("🔍 VTON 이미지 합성 중 (CPU 연산이므로 수 분 이상 소요됩니다)...")
+    print(f"🔍 VTON 이미지 합성 중 ({device.upper()} 가속 연산 진행)...")
     human_img = Image.open(args.human).convert("RGB")
     garment_img = Image.open(args.garment).convert("RGB")
     

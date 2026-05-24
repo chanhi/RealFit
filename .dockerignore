@@ -1,0 +1,28 @@
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose.yml
+.dockerignore
+
+# Frontend (백엔드 빌드 시 필요 없음)
+frontend/
+
+# AI Server & Large Models (백엔드 빌드 시 필요 없음)
+ai_server/
+
+# Storage & Temp Data
+storage/
+temp_workspace/
+.env
+
+# Python Cache & Environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+env/

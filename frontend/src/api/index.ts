@@ -93,8 +93,8 @@ export const getJobResult = async (jobId: string): Promise<string> => {
   const fullUrl = resultPath.startsWith('http')
     ? resultPath
     : resultPath.startsWith('/static/')
-      ? `http://localhost${resultPath}`
-      : `http://localhost/static/${resultPath}`;
+      ? resultPath
+      : `/static/${resultPath}`;
 
   console.log(`--- [API] Job ${jobId} 최종 결과 URL: ${fullUrl} ---`);
   return fullUrl;
@@ -139,7 +139,9 @@ export const generate3DModel = async (
     
     const fullUrl = modelUrl.startsWith('http')
       ? modelUrl
-      : `${API_BASE}${modelUrl}`;
+      : modelUrl.startsWith('/static/')
+        ? modelUrl
+        : `${API_BASE}${modelUrl}`;
 
     console.log('--- [API Response: Success] 3D Model URL:', fullUrl, 'Job ID:', jobId);
     return { url: fullUrl, jobId: jobId, measurements: mockMeasurements };
@@ -160,7 +162,7 @@ export const generateVTONResult = async (
   clothingPhoto: File,
   _customColor: string,
   category: string = 'top'
-): Promise<string> => {
+): Promise<{ vtonUrl: string; modelUrl: string }> => {
   console.log(`--- [API Request: Generate VTON Fitting] Job ID: ${jobId} ---`);
 
   const formData = new FormData();
@@ -181,16 +183,23 @@ export const generateVTONResult = async (
 
     const data = await response.json();
     const resultData = data.data;
-    const resultPath = resultData.result_image_path;
+    const vtonPath = resultData.result_image_path || '';
+    const modelPath = resultData.model_mesh_url || '';
 
-    const fullUrl = resultPath.startsWith('http')
-      ? resultPath
-      : resultPath.startsWith('/static/')
-        ? `http://localhost${resultPath}`
-        : `http://localhost/static/${resultPath}`;
+    const vtonUrl = vtonPath.startsWith('http')
+      ? vtonPath
+      : vtonPath.startsWith('/static/')
+        ? vtonPath
+        : `/static/${vtonPath}`;
 
-    console.log(`--- [API Response: Success] VTON Result URL: ${fullUrl} ---`);
-    return fullUrl;
+    const modelUrl = modelPath.startsWith('http')
+      ? modelPath
+      : modelPath.startsWith('/static/')
+        ? modelPath
+        : `/static/${modelPath}`;
+
+    console.log(`--- [API Response: Success] VTON Result URL: ${vtonUrl}, 3D Model URL: ${modelUrl} ---`);
+    return { vtonUrl, modelUrl };
   } catch (e) {
     console.error('VTON Pipeline failed:', e);
     throw e;
