@@ -19,3 +19,12 @@ dill
 omegaconf
 # PyTorch와 PyTorch3D는 Dockerfile에서 CUDA 버전에 맞춰 직접 설치합니다.
 fal_client #테스트용
+# ==========================================
+# IDM-VTON 필수 의존성
+# ==========================================
+diffusers==0.26.3
+transformers==4.38.2
+accelerate==0.27.2
+safetensors==0.4.2
+huggingface-hub==0.22.2
+

@@ -1,139 +1,162 @@
-import React, { useState } from 'react'
+import React, { useRef } from 'react'
 import { useFittingStore } from '../../store/useFittingStore'
-import { MOCK_PRODUCTS, CATEGORIES } from '../../data/mockProducts'
+import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
 
 export const HomePanel: React.FC = () => {
-  const { setClothing, setCurrentPage } = useFittingStore()
-  const [loadingProductId, setLoadingProductId] = useState<string | null>(null)
-  const [activeCategory, setActiveCategory] = useState<string>('All')
+  const { 
+    photoFile, photoPreviewUrl,
+    selectedBaseModel, setSelectedBaseModel,
+    setPhoto, setCurrentPage, showToast
+  } = useFittingStore()
+  
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
-  const handleTryOn = async (product: typeof MOCK_PRODUCTS[0]) => {
-    setLoadingProductId(product.id)
-    try {
-      // 1. URL의 이미지를 비동기로 다운로드 (CORS 문제 우회를 위해 fetch 처리)
-      const response = await fetch(product.imageUrl)
-      const blob = await response.blob()
-      
-      // 2. 내려받은 Blob 이미지를 프론트엔드 File 객체로 강제 캐스팅(포장)
-      const file = new File([blob], `${product.id}_clothing.jpg`, { type: blob.type })
-      
-      // 3. 상태 저장소에 선택된 옷의 원본을 먼저 주입하고 화면을 3D 피팅룸으로 넘김
-      setClothing(file, product.imageUrl)
-      setCurrentPage('ATELIER')
-
-      // 4. (추가) 화면이 넘어간 뒤 백그라운드에서 누끼 제거(API) 호출 시작
-      const { uploadAndRemoveBackground } = await import('../../api')
-      const { showToast, setIsRemovingBg, addWardrobeItem } = useFittingStore.getState()
-      
-      // 누끼 전용 로딩 스피너 활성화
-      setIsRemovingBg(true)
-      try {
-        const transparentUrl = await uploadAndRemoveBackground(file)
-        setClothing(file, transparentUrl)
-        
-        // [수정] 홈 화면에서 트라이온 한 상품도 옷장(Wardrobe) 갤러리에 추가하여 스위칭이 가능하도록 함.
-        addWardrobeItem({
-          id: `product-${product.id}`,
-          imageUrl: transparentUrl,
-          category: 'top'
-        })
-
-        showToast('🧥 선택하신 상품 이미지의 배경 제거가 완료되었습니다.')
-      } catch (err) {
-        console.error('HomePanel 배경 제거 실패:', err)
-        showToast('❌ 상품 이미지 배경 제거에 실패했습니다.')
-      } finally {
-        setIsRemovingBg(false)
-      }
-
-    } catch (error) {
-      console.error("Failed to load image for Try-On", error)
-      alert("이미지를 불러오는데 실패했습니다.")
-    } finally {
-      setLoadingProductId(null)
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      const previewUrl = URL.createObjectURL(file)
+      setPhoto(file, previewUrl)
+      setSelectedBaseModel(null)
     }
   }
 
-  const filteredProducts = activeCategory === 'All' 
-    ? MOCK_PRODUCTS 
-    : MOCK_PRODUCTS.filter(p => p.category === activeCategory)
+  const handleClearPhoto = () => {
+    setPhoto(null, null)
+    if (photoInputRef.current) photoInputRef.current.value = ''
+  }
+
+  const handleEnterAtelier = () => {
+    if (!photoFile && !selectedBaseModel) {
+      showToast('❌ 기본 체형을 선택하거나 사진을 업로드해주세요.')
+      return
+    }
+    setCurrentPage('ATELIER')
+  }
 
   return (
-    <div className="w-full min-h-full bg-[#f9fafb] dark:bg-zinc-950 pt-8 px-8 pb-32 md:pt-12 md:px-12 md:pb-48 overflow-y-auto transition-colors duration-500">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Hero Section */}
-        <div className="mb-10 text-center">
-          <h2 className="text-4xl font-serif font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-            New Arrivals
-          </h2>
-          <p className="text-gray-500 dark:text-zinc-400 max-w-2xl mx-auto break-keep">
-            이번 시즌 새롭게 입고된 컬렉션을 만나보세요. 마음에 드는 의류를 선택하고 "Try On in 3D" 버튼을 클릭하면, 제품 구매 전 나의 3D 디지털 아바타에 직접 입혀볼 수 있습니다.
+    <div className="w-full min-h-screen bg-[#FDFDFD] dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex items-center justify-center p-6 sm:p-12 transition-colors duration-500 overflow-y-auto">
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[5%] right-[5%] w-[30%] h-[30%] bg-zinc-100 dark:bg-zinc-800/40 rounded-full blur-[100px] opacity-60" />
+        <div className="absolute bottom-[5%] left-[5%] w-[30%] h-[30%] bg-zinc-50 dark:bg-zinc-900/40 rounded-full blur-[100px] opacity-60" />
+      </div>
+
+      <div className="relative max-w-6xl w-full flex flex-col items-center">
+        {/* Header Section */}
+        <div className="text-center mb-16 space-y-4">
+          <h1 className="text-5xl md:text-7xl font-serif font-light tracking-tighter text-zinc-900 dark:text-zinc-100">
+            Digital <span className="italic font-normal">Atelier</span>
+          </h1>
+          <div className="w-16 h-px bg-zinc-300 dark:bg-zinc-700 mx-auto" />
+          <p className="text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto text-lg font-light leading-relaxed tracking-wide break-keep">
+            첨단 AI 기술로 구현된 정교한 가상 피팅 시스템입니다.
+            <br />
+            나만의 프로필을 설정하고 디지털 아뜰리에의 여정을 시작하세요.
           </p>
         </div>
 
-        {/* Category Filter Bar */}
-        <div className="flex justify-center gap-3 mb-12 overflow-x-auto pb-2 scrollbar-hide">
-          {CATEGORIES.map(category => (
-            <button 
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest uppercase whitespace-nowrap transition-all ${
-                activeCategory === category 
-                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black shadow-md cursor-default' 
-                  : 'bg-white dark:bg-zinc-900 text-gray-400 hover:text-gray-900 dark:hover:text-zinc-200 border border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-zinc-500'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-12">
-          {filteredProducts.map((product) => (
-            <div key={product.id} className="group flex flex-col cursor-pointer">
-              
-              {/* Product Image Container */}
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100 dark:bg-zinc-800 mb-4 shadow-sm group-hover:shadow-xl transition-all duration-500">
-                <img 
-                  src={product.imageUrl} 
-                  alt={product.name} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
-                
-                {/* Try On Button Overlay */}
-                <div className="absolute inset-0 bg-black/10 dark:bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleTryOn(product);
-                    }}
-                    disabled={loadingProductId === product.id}
-                    className="translate-y-4 group-hover:translate-y-0 transition-all duration-300 px-6 py-3 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white rounded-full font-bold uppercase tracking-widest text-xs shadow-lg hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingProductId === product.id ? 'Loading...' : 'Try On in 3D'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Product Info */}
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-zinc-500 mb-1">
-                  {product.brand}
-                </span>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">
-                  {product.name}
-                </h3>
-                <span className="text-sm text-gray-600 dark:text-zinc-400">
-                  ₩{product.price.toLocaleString()}
-                </span>
-              </div>
-
+        {/* Main Interface Card */}
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+          
+          {/* Option A: Base Models */}
+          <div className="group relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] transition-all duration-500 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:-translate-y-1">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500 uppercase">Collection 01</span>
+              <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
             </div>
-          ))}
+            
+            <h3 className="text-2xl font-serif mb-8 text-zinc-800 dark:text-zinc-200">기본 체형 선택</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {([
+                { id: 'male-slim', label: '남성 슬림' },
+                { id: 'male-large', label: '남성 건장' },
+                { id: 'female-slim', label: '여성 슬림' },
+                { id: 'female-large', label: '여성 건장' },
+              ] as const).map((model) => (
+                <button
+                  key={model.id}
+                  onClick={() => {
+                    setSelectedBaseModel(model.id as any);
+                    handleClearPhoto();
+                  }}
+                  className={`relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-500 ${
+                    selectedBaseModel === model.id 
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-lg' 
+                      : 'bg-zinc-50 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300'
+                  }`}
+                  style={{ borderBottomColor: BODY_TYPE_COLORS[model.id], borderBottomWidth: '3px' }}
+                >
+                  <BodyTypeIcon type={model.id} selected={selectedBaseModel === model.id} className="w-10 h-14 mb-3" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest">{model.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Option B: Custom Upload */}
+          <div className="group relative bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2.5rem] p-8 lg:p-10 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.3)] transition-all duration-500 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] hover:-translate-y-1">
+            <div className="flex items-center gap-3 mb-8">
+              <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400 dark:text-zinc-500 uppercase">Collection 02</span>
+              <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
+            </div>
+
+            <h3 className="text-2xl font-serif mb-8 text-zinc-800 dark:text-zinc-200">개인 사진 업로드</h3>
+
+            <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-zinc-50 dark:bg-zinc-800/30 border-2 border-dashed border-zinc-200 dark:border-zinc-700 group-hover:border-zinc-300 dark:group-hover:border-zinc-600 transition-all duration-500 flex items-center justify-center max-w-xs mx-auto w-full shadow-inner">
+              {photoPreviewUrl ? (
+                <>
+                  <img src={photoPreviewUrl} alt="Preview" className="w-full h-full object-contain p-3" />
+                  <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 opacity-0 group-hover:opacity-100 transition-all duration-500 backdrop-blur-sm flex items-center justify-center">
+                    <button 
+                      onClick={handleClearPhoto}
+                      className="px-8 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-xs font-bold uppercase tracking-widest hover:scale-105 transition-transform"
+                    >
+                      사진 변경하기
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center p-8 space-y-4">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm">
+                    <svg className="w-6 h-6 text-zinc-300 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold tracking-wide text-zinc-700 dark:text-zinc-300">전신 사진 업로드</p>
+                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">정면 전신 실루엣 이미지</p>
+                  </div>
+                </div>
+              )}
+              <input 
+                type="file" 
+                ref={photoInputRef}
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+            </div>
+          </div>
         </div>
 
+        {/* CTA Button */}
+        <div className="mt-20 flex flex-col items-center">
+          <button 
+            onClick={handleEnterAtelier}
+            className={`group relative px-20 py-5 rounded-full font-bold uppercase tracking-[0.3em] text-xs transition-all duration-500 ${
+              photoFile || selectedBaseModel
+                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] hover:bg-black dark:hover:bg-zinc-200 hover:-translate-y-1'
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-300 dark:text-zinc-600 cursor-not-allowed'
+            }`}
+          >
+            아뜰리에 입장하기
+          </button>
+          <p className="mt-6 text-zinc-400 dark:text-zinc-500 text-[9px] uppercase tracking-[0.5em] font-medium">
+            당신만의 스타일링 여정을 시작하세요
+          </p>
+        </div>
       </div>
     </div>
   )

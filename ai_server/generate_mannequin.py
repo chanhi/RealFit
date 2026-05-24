@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import cv2
 import math
+import os
 
 # ==========================================
 # ⭐️ PyTorch 2.6 호환성 패치
@@ -69,8 +70,7 @@ def main():
     
     model, model_cfg = load_hmr2(DEFAULT_CHECKPOINT)
     # device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    # ⭐️ GPU 호환성 문제로 인해, 무조건 CPU를 사용하도록 강제 고정합니다.
-    device = torch.device('cpu')
+    device = torch.device('cuda') if os.getenv('AI_MODE') == 'prod' and torch.cuda.is_available() else torch.device('cpu')
     model = model.to(device)
     model.eval()
 

@@ -6,7 +6,6 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
-/ai_server/.env
 
 # docker
 *.log
@@ -18,8 +17,8 @@ __pycache__/
 storage/input/
 storage/output/
 
-# optional
-node_modules/frontend/node_modules/
+node_modules/
+frontend/node_modules/
 frontend/.env.local
 frontend/dist/
 
@@ -38,3 +37,11 @@ ai_server/__pycache__/
 # 모델 가중치 및 민감한 데이터 파일 (SMPL 모델 등)
 ai_server/data/*.pkl
 ai_server/data/*.npz
+
+# =========================
+# AI Models & Cache
+# =========================
+# 허깅페이스 IDM-VTON 모델 다운로드 캐시 무시 (용량 문제)
+ai_server/models_cache/*
+!ai_server/models_cache/.gitkeep
+

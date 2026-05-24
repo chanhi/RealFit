@@ -13,15 +13,19 @@ from pytorch3d.renderer import (
 
 class HumanService:
     def __init__(self):
-        # ⭐️ GPU 호환성 문제 회피를 위해 렌더링도 강제로 CPU를 사용합니다.
-        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu") 
         self.base_path = Path("/app")
-        
-        # ⭐️ Nginx와 공유되는 dummy 폴더로 작업 경로를 변경합니다.[cite: 4]
+        # Nginx와 공유되는 dummy 폴더로 작업 경로를 변경합니다.[cite: 4]
         self.workspace_dir = self.base_path / "shared" / "dummy"
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
         self.fourd_humans_dir = self.base_path / "4D-Humans"
+        # 모드에 따른 CPU/GPU 자동 할당
+        self.mode = os.getenv("AI_MODE", "test").lower()
+        if self.mode == "prod" and torch.cuda.is_available():
+            self.device = torch.device("cuda:0")
+            print("🚀 [PROD MODE] HumanService: GPU(CUDA) 활성화됨")
+        else:
+            self.device = torch.device("cpu")
+            print("⚡ [TEST MODE] HumanService: CPU 모드로 동작함")
 
     def extract_3d_mannequin(self, image_path: str, job_id: str) -> str:
         """4D-Humans OBJ 추출"""
@@ -96,3 +100,40 @@ class HumanService:
             results[view_name] = str(out_path)
 
         return results
+    
+    def process(self, image_url: str) -> dict:
+        """라우터에서 호출하는 통합 전처리 파이프라인 진입점"""
+        import uuid
+        
+        # 🟢 [TEST MODE] 15분 걸리는 3D 마네킹 추출을 1초 만에 더미로 패스!
+        if self.mode == "test":
+            print("⚡ [TEST MODE] Human 전처리를 건너뛰고 더미 데이터를 반환합니다.")
+            return {
+                "mannequin_obj_url": "/static/dummy_mannequin.obj",
+                "mesh_data_url": "/static/dummy_mesh.json",
+                # 테스트 모드에서는 원본 이미지를 마네킹 전면 이미지라고 가정하고 반환합니다.
+                "front_view_url": image_url 
+            }
+
+        # 🔴 [PROD MODE] 실제 4D-Humans 파이프라인 가동
+        print("🚀 [PROD MODE] Human 3D 매쉬 추출 및 렌더링을 시작합니다...")
+        job_id = str(uuid.uuid4())[:8]
+        filename = image_url.split("/")[-1]
+        local_image_path = self.workspace_dir / filename
+
+        if not local_image_path.exists():
+            raise FileNotFoundError(f"원본 이미지를 찾을 수 없습니다: {filename}")
+
+        # 1. 마네킹 OBJ 추출
+        obj_path = self.extract_3d_mannequin(str(local_image_path), job_id)
+        # 2. 메쉬 JSON 추출
+        json_path = self.extract_mesh_data(obj_path, job_id)
+        # 3. 전면 렌더링 이미지 생성 (VTON 용)
+        views = self.render_mannequin_views(obj_path, job_id)
+
+        # 프론트엔드가 사용하기 쉽도록 Nginx 정적 URL 형태로 묶어서 반환
+        return {
+            "mannequin_obj_url": f"/static/{Path(obj_path).name}",
+            "mesh_data_url": f"/static/{Path(json_path).name}",
+            "front_view_url": f"/static/{Path(views['front']).name}"
+        }

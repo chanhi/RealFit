@@ -10,13 +10,13 @@ export const SculptPanel: React.FC = () => {
     model_height_unit: 1.82,
     scale_factor: 175.0 / 1.82,
     shoulder_width_cm: 45.0,
-    chest_width_cm: 30.5,
+    chest_width_cm: 50.0,
     waist_width_cm: 26.0,
     hip_width_cm: 33.1
   };
 
   return (
-    <div className="flex flex-col h-full p-6 animate-in fade-in slide-in-from-left-4 duration-300 text-gray-900 dark:text-zinc-100 transition-colors">
+    <div className="flex flex-col p-6 animate-in fade-in slide-in-from-left-4 duration-300 text-gray-900 dark:text-zinc-100 transition-colors">
       <div className="flex items-center justify-between mb-1">
         <h2 className="font-serif text-2xl font-bold">Body Measurements</h2>
         <button 
@@ -33,9 +33,9 @@ export const SculptPanel: React.FC = () => {
         <div className="mt-10 py-16 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl bg-gray-50 dark:bg-zinc-800/50 text-gray-400 dark:text-zinc-500 transition-colors">
           <span className="text-4xl mb-3 grayscale opacity-50">📏</span>
           <p className="text-sm font-semibold uppercase tracking-widest text-gray-500 dark:text-zinc-400 mb-2">No Data Available</p>
-          <p className="text-xs">상단의 VIEW 탭에서 3D 아바타를 먼저 생성해 주세요.</p>
+          <p className="text-xs">상단의 FITTING 탭에서 3D 아바타를 먼저 생성해 주세요.</p>
           <button 
-            onClick={() => setActiveTool('VIEW')}
+            onClick={() => setActiveTool('FITTING')}
             className="mt-6 px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-black dark:hover:bg-zinc-200 transition-colors shadow-sm"
           >
             Go to Upload
@@ -165,6 +165,7 @@ const SizeRecommendation = ({ chestWidth }: { chestWidth: number }) => {
   const [recommended, setRecommended] = useState<string>('M')
   const [confidence, setConfidence] = useState<number>(0)
   const [detail, setDetail] = useState<string>('추천 사이즈를 분석 중입니다...')
+  const [products, setProducts] = useState<any[]>([])
   const [isFetching, setIsFetching] = useState<boolean>(true)
 
   useEffect(() => {
@@ -177,6 +178,7 @@ const SizeRecommendation = ({ chestWidth }: { chestWidth: number }) => {
         setRecommended(res.size)
         setConfidence(res.confidence)
         setDetail(res.detail)
+        setProducts(res.products || [])
         setIsFetching(false)
       }
     })
@@ -233,6 +235,40 @@ const SizeRecommendation = ({ chestWidth }: { chestWidth: number }) => {
           AI 추정치입니다. 브랜드별 실제 사이즈 차트와 비교해 보세요.
         </p>
       </div>
+
+      {/* Recommended Products */}
+      {products.length > 0 && (
+        <div className="mt-5 pt-5 border-t border-gray-700 dark:border-zinc-300 relative z-0">
+          <p className="text-[10px] text-gray-400 dark:text-zinc-500 font-bold uppercase tracking-widest mb-3">
+            Recommended Items ({products.length})
+          </p>
+          <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+            {products.map((item) => (
+              <div key={item.id} className="min-w-[110px] w-[110px] flex-shrink-0 bg-white dark:bg-zinc-800 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all group border border-transparent hover:border-gray-300 dark:hover:border-zinc-600 cursor-pointer">
+                <div className="h-[110px] w-full bg-gray-100 dark:bg-zinc-900 relative">
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover mix-blend-multiply dark:mix-blend-normal" />
+                  <div className="absolute top-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+                    {item.size_label}
+                  </div>
+                </div>
+                <div className="p-2 flex flex-col justify-between">
+                  <div>
+                    <p className="text-[9px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider truncate pb-0.5">
+                      {item.brand}
+                    </p>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100 truncate pb-1" title={item.name}>
+                      {item.name}
+                    </p>
+                  </div>
+                  <p className="text-[10px] font-mono font-bold text-gray-900 dark:text-white mt-1">
+                    ₩{item.price.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

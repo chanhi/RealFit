@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { MannequinViewer } from './components/canvas/MannequinViewer'
-import { UploadPanel } from './components/ui/UploadPanel'
+import { FittingPanel } from './components/ui/FittingPanel'
 import { SculptPanel } from './components/ui/SculptPanel'
 import { HomePanel } from './components/ui/HomePanel'
+import { ShopPanel } from './components/ui/ShopPanel'
 import { ArchivePanel } from './components/ui/ArchivePanel'
 import { AboutPanel } from './components/ui/AboutPanel'
 import { useFittingStore } from './store/useFittingStore'
@@ -61,7 +62,8 @@ function App() {
     currentPage, setCurrentPage, activeTab, setActiveTab, 
     activeTool, setActiveTool, modelUrl, vtonResultUrl, 
     isLoading, loadingType, loadingStage, toastMessage, dismissToast,
-    isDarkMode, toggleDarkMode
+    isDarkMode, toggleDarkMode,
+    showCompleteModal, completeModalType, setShowCompleteModal
   } = useFittingStore()
 
   // Auto-dismiss toast after 5 seconds
@@ -87,7 +89,13 @@ function App() {
             onClick={() => setCurrentPage('HOME')}
             className={`transition-colors ${currentPage === 'HOME' ? 'text-gray-900 dark:text-white border-b-2 border-zinc-900 dark:border-white pb-1' : 'hover:text-gray-900 dark:hover:text-zinc-300'}`}
           >
-            Home
+            Start
+          </button>
+          <button 
+            onClick={() => setCurrentPage('SHOP')}
+            className={`transition-colors ${currentPage === 'SHOP' ? 'text-gray-900 dark:text-white border-b-2 border-zinc-900 dark:border-white pb-1' : 'hover:text-gray-900 dark:hover:text-zinc-300'}`}
+          >
+            Shop
           </button>
           <button 
             onClick={() => setCurrentPage('ATELIER')}
@@ -133,6 +141,10 @@ function App() {
         <div className="flex-1 overflow-auto bg-white dark:bg-zinc-950 transition-colors duration-500">
           <HomePanel />
         </div>
+      ) : currentPage === 'SHOP' ? (
+        <div className="flex-1 overflow-auto bg-white dark:bg-zinc-950 transition-colors duration-500">
+          <ShopPanel />
+        </div>
       ) : currentPage === 'ARCHIVE' ? (
         <div className="flex-1 overflow-auto bg-[#f8f7f5] dark:bg-zinc-900 transition-colors duration-500">
           <ArchivePanel />
@@ -146,12 +158,12 @@ function App() {
         {/* Left Tool Sidebar */}
         <aside className="w-16 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-white/5 flex flex-col items-center py-6 gap-6 z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.1)] dark:shadow-none transition-colors duration-500">
           {[
-            { id: 'VIEW', icon: '👁️', label: 'VIEW' },
+            { id: 'FITTING', icon: '🧥', label: 'FITTING' },
             { id: 'SCULPT', icon: '🔧', label: 'SCULPT' },
           ].map((tool) => (
             <button
               key={tool.id}
-              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as 'VIEW' | 'SCULPT')}
+              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id as 'FITTING' | 'SCULPT')}
               className={`flex flex-col items-center gap-1 transition-colors group relative ${activeTool === tool.id ? 'text-zinc-900 dark:text-zinc-100' : 'text-gray-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
               title={activeTool === tool.id ? '패널 닫기' : '패널 열기'}
             >
@@ -167,7 +179,7 @@ function App() {
         {/* Left Upload/Tool Panel */}
         <aside className={`${activeTool ? 'w-[420px] border-r' : 'w-0 border-transparent'} bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/5 overflow-x-hidden overflow-y-auto z-0 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] shrink-0`}>
           <div className="w-[420px] h-full">
-            {activeTool === 'VIEW' && <UploadPanel />}
+            {activeTool === 'FITTING' && <FittingPanel />}
             {activeTool === 'SCULPT' && <SculptPanel />}
           </div>
         </aside>
@@ -282,6 +294,48 @@ function App() {
         </div>
         <span>© 2026 RealFIT. All rights reserved.</span>
       </footer>
+
+      {/* 백그라운드 피팅 완료 알림 럭셔리 다이얼로그 모달 */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-100 dark:border-white/10 p-8 rounded-2xl max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
+            {/* 럭셔리 바운스 골드 아이콘 */}
+            <div className="w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center mb-6 shadow-inner animate-bounce">
+              <span className="text-3xl">👑</span>
+            </div>
+            
+            <h3 className="font-serif text-xl font-bold text-gray-900 dark:text-white mb-2 tracking-wide">
+              {completeModalType === '3d' ? '3D 아바타 완성!' : '가상 피팅 완성!'}
+            </h3>
+            
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400 leading-relaxed mb-6">
+              나만을 위한 맞춤형 {completeModalType === '3d' ? '3D 피팅 아바타' : '2D 가상 착용 샷'}이 백그라운드에서 성공적으로 완성되었습니다! 지금 아틀리에 피팅 센터에서 결과를 확인해 보세요.
+            </p>
+            
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => {
+                  setCurrentPage('ATELIER');
+                  if (completeModalType) {
+                    setActiveTab(completeModalType);
+                  }
+                  setShowCompleteModal(false);
+                }}
+                className="w-full py-3 bg-zinc-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 text-white dark:text-amber-950 rounded-xl text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98] shadow-md shadow-amber-950/10"
+              >
+                결과 보러 가기 (View Result)
+              </button>
+              
+              <button
+                onClick={() => setShowCompleteModal(false)}
+                className="w-full py-3 bg-transparent hover:bg-gray-100 dark:hover:bg-zinc-800/60 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+              >
+                나중에 확인하기 (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toastMessage && (
