@@ -1,6 +1,16 @@
 import React, { useRef } from 'react'
 import { useFittingStore } from '../../store/useFittingStore'
+import type { BaseModelType } from '../../store/useFittingStore'
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
+
+const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
+  { id: 'male-slim', label: '남성 마른체형' },
+  { id: 'male-normal', label: '남성 기본체형' },
+  { id: 'male-chubby', label: '남성 통통한체형' },
+  { id: 'female-slim', label: '여성 마른체형' },
+  { id: 'female-normal', label: '여성 기본체형' },
+  { id: 'female-chubby', label: '여성 통통한체형' },
+]
 
 export const HomePanel: React.FC = () => {
   const { 
@@ -68,16 +78,11 @@ export const HomePanel: React.FC = () => {
             <h3 className="text-2xl font-serif mb-8 text-zinc-800 dark:text-zinc-200">기본 체형 선택</h3>
             
             <div className="grid grid-cols-2 gap-4">
-              {([
-                { id: 'male-slim', label: '남성 슬림' },
-                { id: 'male-large', label: '남성 건장' },
-                { id: 'female-slim', label: '여성 슬림' },
-                { id: 'female-large', label: '여성 건장' },
-              ] as const).map((model) => (
+              {BASE_BODY_TYPES.map((model) => (
                 <button
                   key={model.id}
                   onClick={() => {
-                    setSelectedBaseModel(model.id as any);
+                    setSelectedBaseModel(model.id);
                     handleClearPhoto();
                   }}
                   className={`relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-500 ${
