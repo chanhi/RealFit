@@ -1,7 +1,27 @@
 import React, { useRef, useEffect } from 'react'
 import { useFittingStore } from '../../store/useFittingStore'
+import type { BaseModelType } from '../../store/useFittingStore'
 import { generate3DModel, generateVTONResult, uploadAndRemoveBackground } from '../../api'
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
+
+const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
+  { id: 'male-slim', label: '남성 마른체형' },
+  { id: 'male-normal', label: '남성 기본체형' },
+  { id: 'male-chubby', label: '남성 통통한체형' },
+  { id: 'female-slim', label: '여성 마른체형' },
+  { id: 'female-normal', label: '여성 기본체형' },
+  { id: 'female-chubby', label: '여성 통통한체형' },
+]
+
+const BASE_BODY_SCULPT: Record<BaseModelType, { width: number; height: number; depth: number }> = {
+  'male-slim': { width: 0.88, height: 1.03, depth: 0.88 },
+  'male-normal': { width: 1.0, height: 1.0, depth: 1.0 },
+  'male-chubby': { width: 1.18, height: 0.97, depth: 1.16 },
+
+  'female-slim': { width: 0.82, height: 1.02, depth: 0.84 },
+  'female-normal': { width: 0.96, height: 1.0, depth: 0.96 },
+  'female-chubby': { width: 1.12, height: 0.96, depth: 1.14 },
+}
 
 export const FittingPanel: React.FC = () => {
   const {
@@ -13,6 +33,7 @@ export const FittingPanel: React.FC = () => {
     setSelectedBaseModel,
     setModelUrl,
     setCurrentJobId,
+    setSculptModifier,
     
     // 2단계: 의류 사진 상태
     clothingFile,
@@ -56,15 +77,18 @@ export const FittingPanel: React.FC = () => {
 
   // ================= 3D 마네킹 생성 / 체형 선택 제어 핸들러 =================
 
-  const handleBaseModelSelect = (modelId: 'male-slim' | 'male-large' | 'female-slim' | 'female-large') => {
-    // 1. 개인 업로드 사진 클리어 및 기본 모델로 전환
+  const handleBaseModelSelect = (modelId: BaseModelType) => {
     setPhoto(null, null)
     setSelectedBaseModel(modelId)
     setCurrentJobId(null)
-    
-    // 2. 기본 마네킹 3D 오브젝트 주입
+
+    const sculpt = BASE_BODY_SCULPT[modelId]
+    setSculptModifier('width', sculpt.width)
+    setSculptModifier('height', sculpt.height)
+    setSculptModifier('depth', sculpt.depth)
+
     setModelUrl('/mock/mannequin.obj')
-    showToast('🧍 기본 체형 마네킹이 아뜰리에에 셋업되었습니다.')
+    showToast('🧍 선택한 기본 체형 마네킹이 아뜰리에에 적용되었습니다.')
   }
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,20 +334,17 @@ export const FittingPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 4종 체형 그리드 */}
+      {/* 6종 기본 체형 그리드 */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        {([
-          { id: 'male-slim', label: '남성 슬림' },
-          { id: 'male-large', label: '남성 건장' },
-          { id: 'female-slim', label: '여성 슬림' },
-          { id: 'female-large', label: '여성 건장' },
-        ] as const).map((model) => {
+        {BASE_BODY_TYPES.map((model) => {
           const isSelected = selectedBaseModel === model.id
+
           return (
             <button
               key={model.id}
-              onClick={() => handleBaseModelSelect(model.id as any)}
-              className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 ${
+              type="button"
+              onClick={() => handleBaseModelSelect(model.id)}
+              className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-300 ${
                 isSelected
                   ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-lg'
                   : 'bg-gray-50 dark:bg-zinc-800/30 border-transparent text-gray-400 dark:text-zinc-500 hover:bg-gray-100 dark:hover:bg-zinc-800/80 hover:text-gray-600 dark:hover:text-zinc-300'

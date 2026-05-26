@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 
+export type BaseModelType =
+  | 'male-slim'
+  | 'male-normal'
+  | 'male-chubby'
+  | 'female-slim'
+  | 'female-normal'
+  | 'female-chubby'
+
 export interface BodyMeasurements {
   height_cm: number;
   model_height_unit: number;
@@ -66,7 +74,7 @@ export interface FittingState {
   wishlistIds: string[];
 
   // 기본 체형(마네킹) 선택
-  selectedBaseModel: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null;
+  selectedBaseModel: BaseModelType | null;
 
   // 체형 조각(Sculpting) 스케일 조절자
   sculptModifiers: { width: number, height: number, depth: number };
@@ -94,7 +102,7 @@ export interface FittingState {
   resetSculptModifiers: () => void;
   toggleDarkMode: () => void;
   setCurrentJobId: (jobId: string | null) => void;
-  setSelectedBaseModel: (modelType: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null) => void;
+  setSelectedBaseModel: (modelType: BaseModelType | null) => void;
   
   // 옷장 및 위시리스트 메서드
   fetchWardrobe: () => Promise<void>;
