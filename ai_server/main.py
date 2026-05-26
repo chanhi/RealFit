@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from pathlib import Path
-
-# 분리될 라우터들 임포트 (다음 단계에서 생성할 예정입니다)
+from fastapi.middleware.cors import CORSMiddleware
 from routers import preprocess_router, vton_router, tripo_router
 
 app = FastAPI(title="RealFit AI Server", version="2.0")
+
+# CORS 미들웨어 등록 (app 생성 직후에 추가)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # 개발 및 테스트를 위해 일단 모두 허용
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Nginx와 공유하는 워크스페이스 폴더 전역 설정
 WORKSPACE_DIR = Path("/app/shared/dummy")
