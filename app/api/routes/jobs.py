@@ -38,6 +38,7 @@ def copy_as_real_jpeg(src_path: str, dst_path: str):
 @router.post("/mannequin")
 def create_mannequin(
         user_image: UploadFile = File(...),
+        height: float = Form(175.0),
         db: Session = Depends(get_db)
 ):
     allowed_extensions = [".jpg", ".jpeg", ".png"]
@@ -78,8 +79,11 @@ def create_mannequin(
 
         response = httpx.post(
             "http://ai_server:9002/ai/preprocess/human",
-            json={"image_url": f"/static/{user_dummy_filename}"},
-            timeout=120.0
+            json={
+                "image_url": f"/static/{user_dummy_filename}",
+                "height": height
+            },
+            timeout=360.0
         )
 
         if response.status_code != 200:

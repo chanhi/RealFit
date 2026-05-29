@@ -146,7 +146,7 @@ export const generate3DModel = async (
     console.log('--- [API Response: Success] 3D Model URL:', fullUrl, 'Job ID:', jobId);
     return { url: fullUrl, jobId: jobId, measurements: mockMeasurements };
   } catch (e) {
-    console.warn('Backend unavailable for 3D, using local mock OBJ:', e);
+    console.error('❌ [3D Generation Server Error] 4D-Humans computation or server timeout failed:', e);
     // 폴백 시 임시 jobId 반환
     return { url: '/mock/mannequin.obj', jobId: `mock-${Date.now()}`, measurements: mockMeasurements };
   }

@@ -99,12 +99,14 @@ def main():
     vertices = smpl_out.vertices[0].detach().cpu().numpy()
     faces = model.smpl.faces
 
-    print(f"📏 마네킹 키를 {args.height}cm 로 스케일링 중...")
     min_y, max_y = vertices[:, 1].min(), vertices[:, 1].max()
     current_height = max_y - min_y
-    target_height_m = args.height / 100.0 
+    estimated_height_cm = current_height * 100.0
     
-    scale_factor = target_height_m / current_height
+    print(f"📏 [AI Body Estimator] 4D-Humans가 사진에서 예측한 아바타 실제 키: {estimated_height_cm:.1f}cm")
+    
+    # 4D-Humans 오리지널 체형 및 실제 높이 비율을 훼손하지 않기 위해 강제 스케일링을 비활성화하고 1.0 배율을 유지합니다.
+    scale_factor = 1.0
     vertices = vertices * scale_factor
     
     vertices[:, 1] -= vertices[:, 1].min()

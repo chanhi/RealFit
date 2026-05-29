@@ -27,7 +27,7 @@ class HumanService:
             self.device = torch.device("cpu")
             print("⚡ [TEST MODE] HumanService: CPU 모드로 동작함")
 
-    def extract_3d_mannequin(self, image_path: str, job_id: str) -> str:
+    def extract_3d_mannequin(self, image_path: str, job_id: str, height: float = 175.0) -> str:
         """4D-Humans OBJ 추출"""
         obj_output_path = self.workspace_dir / f"{job_id}_A_pose_mannequin.obj"
         script_path = self.fourd_humans_dir / "generate_mannequin.py"
@@ -35,7 +35,7 @@ class HumanService:
         command = [
             "python", str(script_path),
             "--img", image_path,
-            "--height", "175.0",
+            "--height", str(height),
             "--pose", "A-pose",
             "--out", str(obj_output_path)
         ]
@@ -101,7 +101,7 @@ class HumanService:
 
         return results
     
-    def process(self, image_url: str) -> dict:
+    def process(self, image_url: str, height: float = 175.0) -> dict:
         """라우터에서 호출하는 통합 전처리 파이프라인 진입점"""
         import uuid
         
@@ -125,7 +125,7 @@ class HumanService:
             raise FileNotFoundError(f"원본 이미지를 찾을 수 없습니다: {filename}")
 
         # 1. 마네킹 OBJ 추출
-        obj_path = self.extract_3d_mannequin(str(local_image_path), job_id)
+        obj_path = self.extract_3d_mannequin(str(local_image_path), job_id, height)
         # 2. 메쉬 JSON 추출
         json_path = self.extract_mesh_data(obj_path, job_id)
         # 3. 전면 렌더링 이미지 생성 (VTON 용)
