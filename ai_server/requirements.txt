@@ -22,9 +22,9 @@ fal_client #테스트용
 # ==========================================
 # IDM-VTON 필수 의존성
 # ==========================================
-diffusers==0.26.3
+diffusers==0.25.0
 transformers==4.38.2
-accelerate==0.27.2
+accelerate==0.26.1
 safetensors==0.4.2
 huggingface-hub==0.22.2
 

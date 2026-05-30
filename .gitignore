@@ -43,5 +43,7 @@ ai_server/data/*.npz
 # =========================
 # 허깅페이스 IDM-VTON 모델 다운로드 캐시 무시 (용량 문제)
 ai_server/models_cache/*
+ai_server/ip_adapter/*
+ai_server/src/*
 !ai_server/models_cache/.gitkeep
 
