@@ -1,77 +1,58 @@
 import React from 'react'
+import type { BaseModelType } from '../../store/useFittingStore'
 
 interface BodyTypeIconProps {
-  type: 'male-slim' | 'male-large' | 'female-slim' | 'female-large'
+  type: BaseModelType
   selected?: boolean
   className?: string
 }
 
-const COLORS: Record<string, string> = {
+const COLORS: Record<BaseModelType, string> = {
   'male-slim': '#4A90D9',
-  'male-large': '#1E3A5F',
+  'male-normal': '#2563EB',
+  'male-chubby': '#1E3A5F',
   'female-slim': '#E8749A',
-  'female-large': '#9B59B6',
+  'female-normal': '#EC4899',
+  'female-chubby': '#9B59B6',
 }
 
 export const BodyTypeIcon: React.FC<BodyTypeIconProps> = ({ type, selected = false, className = '' }) => {
   const fill = selected ? 'currentColor' : COLORS[type]
 
+  const gender = type.startsWith('male') ? 'male' : 'female'
+  const body = type.split('-')[1]
+
+  const isSlim = body === 'slim'
+  const isNormal = body === 'normal'
+  const isChubby = body === 'chubby'
+
   return (
     <svg className={className} viewBox="0 0 40 72" fill={fill}>
-      {type === 'male-slim' && (
+      {gender === 'male' && (
         <>
-          {/* Head */}
-          <circle cx="20" cy="7" r="5" />
-          {/* Neck */}
-          <rect x="17.5" y="12" width="5" height="3" rx="2" />
-          {/* Narrow torso */}
-          <rect x="13" y="15" width="14" height="23" rx="3" />
-          {/* Left leg */}
-          <rect x="13" y="39" width="5.5" height="27" rx="2.5" />
-          {/* Right leg */}
-          <rect x="21.5" y="39" width="5.5" height="27" rx="2.5" />
+          <circle cx="20" cy="7" r={isChubby ? 6 : 5} />
+          <rect x={isChubby ? 16 : 17} y="12" width={isChubby ? 8 : 6} height="3" rx="2" />
+
+          {isSlim && <rect x="14" y="16" width="12" height="23" rx="3" />}
+          {isNormal && <rect x="11" y="16" width="18" height="24" rx="4" />}
+          {isChubby && <rect x="7" y="16" width="26" height="25" rx="5" />}
+
+          <rect x={isSlim ? 13 : isNormal ? 11 : 8} y="41" width={isSlim ? 5.5 : isNormal ? 7 : 8.5} height="25" rx="3" />
+          <rect x={isSlim ? 21.5 : isNormal ? 22 : 23.5} y="41" width={isSlim ? 5.5 : isNormal ? 7 : 8.5} height="25" rx="3" />
         </>
       )}
-      {type === 'male-large' && (
+
+      {gender === 'female' && (
         <>
-          {/* Head */}
-          <circle cx="20" cy="7" r="6" />
-          {/* Neck */}
-          <rect x="16" y="13" width="8" height="3" rx="2" />
-          {/* Wide torso - broad shoulders */}
-          <rect x="7" y="16" width="26" height="23" rx="4" />
-          {/* Left leg - thick */}
-          <rect x="8" y="40" width="8" height="26" rx="3" />
-          {/* Right leg - thick */}
-          <rect x="24" y="40" width="8" height="26" rx="3" />
-        </>
-      )}
-      {type === 'female-slim' && (
-        <>
-          {/* Head */}
-          <circle cx="20" cy="7" r="4.5" />
-          {/* Neck */}
-          <rect x="18" y="11.5" width="4" height="3" rx="1.5" />
-          {/* Hourglass torso - narrow waist, moderate hips */}
-          <path d="M13,15 L27,15 Q23,26 27,38 L13,38 Q17,26 13,15 Z" />
-          {/* Left leg */}
-          <rect x="13" y="39" width="5.5" height="27" rx="2.5" />
-          {/* Right leg */}
-          <rect x="21.5" y="39" width="5.5" height="27" rx="2.5" />
-        </>
-      )}
-      {type === 'female-large' && (
-        <>
-          {/* Head */}
-          <circle cx="20" cy="7" r="5.5" />
-          {/* Neck */}
-          <rect x="17" y="12.5" width="6" height="3" rx="2" />
-          {/* Fuller hourglass - wider hips */}
-          <path d="M11,16 L29,16 Q24,27 32,40 L8,40 Q16,27 11,16 Z" />
-          {/* Left leg - fuller */}
-          <rect x="9" y="41" width="7" height="25" rx="3" />
-          {/* Right leg - fuller */}
-          <rect x="24" y="41" width="7" height="25" rx="3" />
+          <circle cx="20" cy="7" r={isChubby ? 5.5 : 4.8} />
+          <rect x={isChubby ? 17 : 18} y="12" width={isChubby ? 6 : 4} height="3" rx="2" />
+
+          {isSlim && <path d="M14,16 L26,16 Q23,27 27,39 L13,39 Q17,27 14,16 Z" />}
+          {isNormal && <path d="M12,16 L28,16 Q24,27 30,40 L10,40 Q16,27 12,16 Z" />}
+          {isChubby && <path d="M10,16 L30,16 Q25,28 33,41 L7,41 Q15,28 10,16 Z" />}
+
+          <rect x={isSlim ? 13 : isNormal ? 11 : 9} y="42" width={isSlim ? 5.5 : isNormal ? 7 : 8} height="24" rx="3" />
+          <rect x={isSlim ? 21.5 : isNormal ? 22 : 23} y="42" width={isSlim ? 5.5 : isNormal ? 7 : 8} height="24" rx="3" />
         </>
       )}
     </svg>

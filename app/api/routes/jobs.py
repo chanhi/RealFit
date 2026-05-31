@@ -172,7 +172,7 @@ def create_fitting(
                 "front_file_url": job.front_image_url,
                 "cloth_file_url": f"/static/{cloth_dummy_filename}"
             },
-            timeout=120.0
+            timeout=360.0
         )
         if response_vton.status_code != 200:
             update_job_error(db, job_id, f"VTON synthesis failed: {response_vton.status_code}")
@@ -188,7 +188,7 @@ def create_fitting(
                 "job_id": job_id,
                 "vton_image_url": vton_url
             },
-            timeout=120.0
+            timeout=360.0
         )
         if response_tripo.status_code != 200:
             update_job_error(db, job_id, f"Tripo 3D generation failed: {response_tripo.status_code}")
@@ -205,7 +205,7 @@ def create_fitting(
                 "model_3d_url": model_3d_url,
                 "mannequin_mesh_url": job.mannequin_mesh_url
             },
-            timeout=120.0
+            timeout=360.0
         )
         if response_apply.status_code != 200:
             update_job_error(db, job_id, f"Mesh application failed: {response_apply.status_code}")
@@ -258,7 +258,7 @@ def trigger_ai_server(db: Session, job_id: str, user_image_path: str, cloth_imag
                 "body_image_url": user_image_path,
                 "clothing_image_url": cloth_image_path,
             },
-            timeout=30.0,
+            timeout=360.0,
         )
 
         if response.status_code == 200:

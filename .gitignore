@@ -45,3 +45,7 @@ ai_server/data/*.npz
 ai_server/models_cache/*
 !ai_server/models_cache/.gitkeep
 
+# 4D-Humans 모델 다운로드 캐시 무시 (용량 문제)
+ai_server/4dhumans_cache/
+
+

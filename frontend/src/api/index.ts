@@ -2,7 +2,7 @@ import type { BodyMeasurements } from "../store/useFittingStore";
 import { removeBackground } from '@imgly/background-removal';
 
 // ===== Configuration =====
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE = '';
 
 // ===== Job API Types =====
 interface JobData {
@@ -43,7 +43,7 @@ export const createFittingJob = async (
  */
 export const pollJobStatus = async (
   jobId: string,
-  timeoutMs: number = 120000,
+  timeoutMs: number = 360000,
   onStatusCheck?: (status: string) => void
 ): Promise<JobData> => {
   const startTime = Date.now();
@@ -147,8 +147,8 @@ export const generate3DModel = async (
     return { url: fullUrl, jobId: jobId, measurements: mockMeasurements };
   } catch (e) {
     console.error('❌ [3D Generation Server Error] 4D-Humans computation or server timeout failed:', e);
-    // 폴백 시 임시 jobId 반환
-    return { url: '/mock/mannequin.obj', jobId: `mock-${Date.now()}`, measurements: mockMeasurements };
+    // 폴백 대신 정직하게 에러를 던져 로딩 중 풀리는 현상을 차단합니다.
+    throw e;
   }
 };
 
