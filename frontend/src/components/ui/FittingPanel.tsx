@@ -340,8 +340,8 @@ export const FittingPanel: React.FC = () => {
         })}
       </div>
 
-      {/* 내 전신 사진 업로드 드롭존 (반응형 찌그러짐 방지 flex-shrink-0 min-h-[220px] 적용) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-4 max-w-xs mx-auto w-full shadow-inner flex-shrink-0 min-h-[220px] max-h-[240px]">
+      {/* 내 전신 사진 업로드 드롭존 (화면 높이에 맞춰 큼직하게 300px~360px로 확대) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-4 max-w-xs mx-auto w-full shadow-inner flex-shrink-0 min-h-[300px] max-h-[360px]">
         {photoPreviewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img src={photoPreviewUrl} alt="Model Preview" className="w-full h-full object-contain p-2" />
@@ -429,8 +429,8 @@ export const FittingPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 피팅 의상 업로드 드롭존 (수축 방지 flex-shrink-0 및 min-h/max-h 높이 고정) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-3 group flex items-center justify-center transition-colors duration-500 flex-shrink-0 min-h-[160px] max-h-[200px]">
+      {/* 피팅 의상 업로드 드롭존 (시원한 시각화 보장을 위해 220px~260px로 대폭 확대) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-3 group flex items-center justify-center transition-colors duration-500 flex-shrink-0 min-h-[220px] max-h-[260px]">
         {clothingPreviewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img src={clothingPreviewUrl} alt="Clothing Upload" className={`w-full h-full object-contain p-2 transition-opacity duration-300 ${isRemovingBg ? 'opacity-30 grayscale' : 'opacity-100'}`} />
