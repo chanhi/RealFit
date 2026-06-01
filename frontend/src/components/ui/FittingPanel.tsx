@@ -321,6 +321,7 @@ export const FittingPanel: React.FC = () => {
       <div className="grid grid-cols-3 gap-2 mb-4">
         {BASE_BODY_TYPES.map((model) => {
           const isSelected = selectedBaseModel === model.id
+
           return (
             <button
               key={model.id}
