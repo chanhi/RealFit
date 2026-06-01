@@ -101,6 +101,7 @@ export const FittingPanel: React.FC = () => {
       // [3단계] 수동 아바타 생성을 위해 1. 기본 마네킹 클리어 및 사진 등록만 수행합니다. (자동 트리거 제거)
       setSelectedBaseModel(null)
       setPhoto(file, previewUrl)
+      setCurrentJobId(null) // Reset job ID so the 3D generation button appears for the new photo
       showToast('🧍 사진이 등록되었습니다. 아래 [3D 마네킹 생성] 버튼을 클릭해 주세요!')
     }
   }
