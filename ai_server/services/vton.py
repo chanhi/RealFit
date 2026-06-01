@@ -64,8 +64,12 @@ class VtonService:
         
         print(f"실행 명령어: {' '.join(command)}")
         
+        # PYTHONPATH 환경변수에 IDM-VTON 경로 추가하여 모듈 탐색이 가능하도록 보강
+        env = os.environ.copy()
+        env["PYTHONPATH"] = f"{self.vton_dir}:{env.get('PYTHONPATH', '')}"
+        
         # 스크립트가 에러를 뱉으면 FastAPI 쪽으로 에러를 던짐 (check=True)
-        subprocess.run(command, check=True, cwd=str(self.vton_dir))
+        subprocess.run(command, check=True, cwd=str(self.vton_dir), env=env)
         
         # 2단계(fal_service.to3D)로 넘겨주기 위한 로컬 절대 경로 반환
         return str(output_img_path)

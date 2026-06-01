@@ -1,4 +1,5 @@
 import React from 'react'
+import { useFittingStore } from '../../store/useFittingStore'
 
 export const AboutPanel: React.FC = () => {
   return (
@@ -13,6 +14,16 @@ export const AboutPanel: React.FC = () => {
           <p className="text-xl text-gray-500 dark:text-zinc-400 font-light leading-relaxed max-w-lg mb-10">
             RealFIT은 최첨단 AI 렌더링 기술과 사실적인 3D 토폴로지를 결합하여 옷을 구매하기 전 직접 가상으로 착용해 볼 수 있는 경험을 제공합니다. 스크린 너머로 만나는 지속 가능한 패션을 경험해 보세요.
           </p>
+          
+          <button 
+            onClick={() => {
+              useFittingStore.getState().setCurrentPage('HOME')
+            }}
+            className="mb-10 px-8 py-4 bg-zinc-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 text-white dark:text-amber-950 rounded-xl font-bold uppercase tracking-widest text-xs shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white/10 dark:border-zinc-900/10"
+          >
+            <span>🧍</span> 가상 피팅 서비스 시작하기 (Start RealFIT)
+          </button>
+
           <div className="flex gap-6 items-center border-l-2 border-gray-900 dark:border-white pl-6 h-20">
             <div className="flex flex-col">
               <span className="text-3xl font-bold font-serif mb-1 uppercase tracking-tight text-gray-900 dark:text-white">0%</span>
@@ -79,6 +90,23 @@ export const AboutPanel: React.FC = () => {
             ))}
           </div>
         </div>
+      </section>
+      
+      {/* CTA Section */}
+      <section className="max-w-7xl mx-auto px-8 py-24 text-center border-t border-gray-100 dark:border-white/5">
+        <h2 className="text-4xl font-serif font-light mb-6 text-gray-900 dark:text-white">준비가 되셨나요?</h2>
+        <p className="text-gray-400 dark:text-zinc-500 font-light max-w-md mx-auto mb-10 text-sm leading-relaxed">
+          지금 바로 사진 한 장 또는 기본 마네킹을 가동하여 나만의 스마트 옷장에서 멋진 버추얼 드레스업을 즐겨보세요.
+        </p>
+        <button 
+          onClick={() => {
+            useFittingStore.getState().setCurrentPage('ATELIER')
+            useFittingStore.getState().setActiveTool('FITTING')
+          }}
+          className="mx-auto px-10 py-5 bg-zinc-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 text-white dark:text-amber-950 rounded-xl font-bold uppercase tracking-widest text-xs shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 border border-white/10 dark:border-zinc-900/10"
+        >
+          <span>✨</span> 가상 피팅 센터 직행하기 (Enter Atelier)
+        </button>
       </section>
       
       {/* Footer minimal */}

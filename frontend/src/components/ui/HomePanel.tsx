@@ -4,12 +4,12 @@ import type { BaseModelType } from '../../store/useFittingStore'
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
 
 const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
-  { id: 'male-slim', label: '남성 마른체형' },
-  { id: 'male-normal', label: '남성 기본체형' },
-  { id: 'male-chubby', label: '남성 통통한체형' },
-  { id: 'female-slim', label: '여성 마른체형' },
-  { id: 'female-normal', label: '여성 기본체형' },
-  { id: 'female-chubby', label: '여성 통통한체형' },
+  { id: 'male-slim', label: '남성 슬림체형' },
+  { id: 'male-normal', label: '남성 보통체형' },
+  { id: 'male-chubby', label: '남성 건장한체형' },
+  { id: 'female-slim', label: '여성 슬림체형' },
+  { id: 'female-normal', label: '여성 보통체형' },
+  { id: 'female-chubby', label: '여성 건장한체형' },
 ]
 
 export const HomePanel: React.FC = () => {
@@ -81,11 +81,12 @@ export const HomePanel: React.FC = () => {
               {BASE_BODY_TYPES.map((model) => (
                 <button
                   key={model.id}
+                  type="button"
                   onClick={() => {
                     setSelectedBaseModel(model.id);
                     handleClearPhoto();
                   }}
-                  className={`relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-500 ${
+                  className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all duration-500 ${
                     selectedBaseModel === model.id 
                       ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-lg' 
                       : 'bg-zinc-50 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300'
