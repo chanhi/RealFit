@@ -135,7 +135,7 @@ export const useFittingStore = create<FittingState>((set) => ({
   activeTab: '3d',
   activeTool: 'FITTING',
   selectedBaseModel: null,
-  currentPage: 'HOME',
+  currentPage: 'ABOUT',
   isDarkMode: false, // 라이트 모드 기본 시작
   savedArchives: INITIAL_ARCHIVES,
   wardrobeItems: [],

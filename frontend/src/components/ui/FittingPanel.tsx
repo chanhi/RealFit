@@ -5,12 +5,12 @@ import { generate3DModel, generateVTONResult, uploadAndRemoveBackground } from '
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
 
 const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
-  { id: 'male-slim', label: '남성 마른체형' },
-  { id: 'male-normal', label: '남성 기본체형' },
-  { id: 'male-chubby', label: '남성 통통한체형' },
-  { id: 'female-slim', label: '여성 마른체형' },
-  { id: 'female-normal', label: '여성 기본체형' },
-  { id: 'female-chubby', label: '여성 통통한체형' },
+  { id: 'male-slim', label: '남성 슬림체형' },
+  { id: 'male-normal', label: '남성 보통체형' },
+  { id: 'male-chubby', label: '남성 건장한체형' },
+  { id: 'female-slim', label: '여성 슬림체형' },
+  { id: 'female-normal', label: '여성 보통체형' },
+  { id: 'female-chubby', label: '여성 건장한체형' },
 ]
 
 const BASE_BODY_SCULPT: Record<BaseModelType, { width: number; height: number; depth: number }> = {
@@ -33,6 +33,7 @@ export const FittingPanel: React.FC = () => {
     setSelectedBaseModel,
     setModelUrl,
     setCurrentJobId,
+    currentJobId,
     setSculptModifier,
     
     // 2단계: 의류 사진 상태
@@ -67,75 +68,48 @@ export const FittingPanel: React.FC = () => {
     }
 
     const state = useFittingStore.getState()
-    if (state.photoFile && !state.currentJobId && !state.isLoading) {
-      handleGenerate3D()
-    } else if (state.selectedBaseModel && !state.modelUrl) {
-      // 기본 마네킹을 선택하고 넘어온 경우 더미 모델 세팅
-      setModelUrl('/mock/mannequin.obj')
+    if (state.selectedBaseModel && !state.modelUrl) {
+      // 기본 마네킹을 선택하고 넘어온 경우 실제 존재하는 더미 모델 세팅
+      setModelUrl('/static/dummy_mannequin.obj')
     }
   }, [fetchWardrobe, wardrobeItems.length])
 
   // ================= 3D 마네킹 생성 / 체형 선택 제어 핸들러 =================
 
   const handleBaseModelSelect = (modelId: BaseModelType) => {
+    // 1. 개인 업로드 사진 클리어 및 기본 모델로 전환
     setPhoto(null, null)
     setSelectedBaseModel(modelId)
     setCurrentJobId(null)
-
+    
+    // 2. 다이나믹 기본 체형 스케일 주입 (실제 3D 마네킹 크기 변형 가동!)
     const sculpt = BASE_BODY_SCULPT[modelId]
     setSculptModifier('width', sculpt.width)
     setSculptModifier('height', sculpt.height)
     setSculptModifier('depth', sculpt.depth)
 
-    setModelUrl('/mock/mannequin.obj')
+    // 3. 기본 마네킹 3D 오브젝트 주입
+    setModelUrl('/static/dummy_mannequin.obj')
     showToast('🧍 선택한 기본 체형 마네킹이 아뜰리에에 적용되었습니다.')
   }
 
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]
       const previewUrl = URL.createObjectURL(file)
 
-      // 1. 기본 마네킹 클리어 및 업로드 사진 등록
+      // [3단계] 수동 아바타 생성을 위해 1. 기본 마네킹 클리어 및 사진 등록만 수행합니다. (자동 트리거 제거)
       setSelectedBaseModel(null)
       setPhoto(file, previewUrl)
-
-      // 2. 실시간 AI 3D 아바타 생성 파이프라인 트리거
-      setIsLoading(true)
-      setLoadingType('3d')
-      setLoadingStage(0)
-
-      // 시각적 단계 로딩 시뮬레이터 구동
-      const timers = [
-        setTimeout(() => useFittingStore.getState().isLoading && setLoadingStage(1), 3000),
-        setTimeout(() => useFittingStore.getState().isLoading && setLoadingStage(2), 7000),
-        setTimeout(() => useFittingStore.getState().isLoading && setLoadingStage(3), 12000),
-      ]
-
-      try {
-        const { url, jobId, measurements } = await generate3DModel(file)
-        setCurrentJobId(jobId)
-        timers.forEach(clearTimeout)
-        setModelUrl(url, measurements)
-        useFittingStore.getState().setActiveTab('3d')
-        showToast('✅ 나만의 3D 아바타가 새로 구축되었습니다!')
-      } catch (err) {
-        console.error('3D Model generation failed:', err)
-        timers.forEach(clearTimeout)
-        showToast('❌ 3D 생성에 실패했습니다. 다시 시도해 주세요.')
-      } finally {
-        setIsLoading(false)
-        setLoadingType(null)
-        setLoadingStage(0)
-      }
+      showToast('🧍 사진이 등록되었습니다. 아래 [3D 마네킹 생성] 버튼을 클릭해 주세요!')
     }
   }
 
   const handleClearPhoto = () => {
     setPhoto(null, null)
     if (photoInputRef.current) photoInputRef.current.value = ''
-    setSelectedBaseModel('male-slim') // Fallback to basic male slim
-    setModelUrl('/mock/mannequin.obj')
+    setSelectedBaseModel('male-normal') // Fallback to basic male normal
+    setModelUrl('/static/dummy_mannequin.obj')
   }
 
   const handleGenerate3D = async () => {
@@ -322,12 +296,21 @@ export const FittingPanel: React.FC = () => {
   return (
     <div className="flex flex-col h-full p-6 text-gray-900 dark:text-zinc-100 transition-colors duration-500 overflow-y-auto">
       
-      {/* ================ [헤더 타이틀] ================= */}
-      <h2 className="font-serif text-2xl font-bold mb-1">Atelier Fitting Center</h2>
+      {/* ================ [헤더 타이틀 및 닫기 버튼 (4단계)] ================= */}
+      <div className="flex justify-between items-start mb-1">
+        <h2 className="font-serif text-2xl font-bold">Atelier Fitting Center</h2>
+        <button 
+          onClick={() => useFittingStore.getState().setActiveTool(null)}
+          className="text-gray-400 hover:text-gray-950 dark:hover:text-white transition-colors text-lg p-1"
+          title="패널 닫기"
+        >
+          ✕
+        </button>
+      </div>
       <p className="text-sm text-gray-400 dark:text-zinc-500 mb-6">나만의 체형 모델과 피팅할 의류를 한 번에 설정하세요.</p>
 
       {/* ================= [섹션 01: 마네킹 및 프로필 설정] ================= */}
-      <div className="flex flex-col gap-1 mb-4">
+      <div className="flex flex-col gap-1 mb-3">
         <div className="flex items-center gap-2">
           <span className="text-zinc-900 dark:text-white font-bold text-sm">01</span>
           <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">마네킹 체형 설정 (Mannequin Profile)</span>
@@ -335,7 +318,7 @@ export const FittingPanel: React.FC = () => {
       </div>
 
       {/* 6종 기본 체형 그리드 */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         {BASE_BODY_TYPES.map((model) => {
           const isSelected = selectedBaseModel === model.id
 
@@ -344,22 +327,22 @@ export const FittingPanel: React.FC = () => {
               key={model.id}
               type="button"
               onClick={() => handleBaseModelSelect(model.id)}
-              className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-300 ${
+              className={`relative flex flex-col items-center justify-center p-2 rounded-xl border-2 transition-all duration-300 ${
                 isSelected
                   ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-lg'
                   : 'bg-gray-50 dark:bg-zinc-800/30 border-transparent text-gray-400 dark:text-zinc-500 hover:bg-gray-100 dark:hover:bg-zinc-800/80 hover:text-gray-600 dark:hover:text-zinc-300'
               }`}
               style={{ borderBottomColor: BODY_TYPE_COLORS[model.id], borderBottomWidth: '3px' }}
             >
-              <BodyTypeIcon type={model.id} selected={isSelected} className="w-8 h-12 mb-2" />
-              <span className="text-[9px] font-bold uppercase tracking-widest">{model.label}</span>
+              <BodyTypeIcon type={model.id} selected={isSelected} className="w-6 h-9 mb-1" />
+              <span className="text-[8px] font-bold uppercase tracking-tight text-center leading-tight">{model.label.replace('체형', '')}</span>
             </button>
           )
         })}
       </div>
 
-      {/* 내 전신 사진 업로드 드롭존 (세로 길이를 10% 컴팩트하게 줄인 aspect-[3/4] 비율 적용) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-6 max-w-xs mx-auto w-full shadow-inner">
+      {/* 내 전신 사진 업로드 드롭존 (화면 높이에 맞춰 큼직하게 300px~360px로 확대) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-4 max-w-xs mx-auto w-full shadow-inner flex-shrink-0 min-h-[300px] max-h-[360px]">
         {photoPreviewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img src={photoPreviewUrl} alt="Model Preview" className="w-full h-full object-contain p-2" />
@@ -371,24 +354,24 @@ export const FittingPanel: React.FC = () => {
                 e.preventDefault();
                 handleClearPhoto();
               }}
-              className="absolute top-3 right-3 z-30 p-2 bg-black/60 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
+              className="absolute top-2 right-2 z-30 p-1.5 bg-black/60 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
               title="Delete photo & restore default body"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         ) : (
           <>
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors pointer-events-none p-4 text-center">
-              <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm mb-2">
-                <svg className="w-4 h-4 text-gray-300 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors pointer-events-none p-3 text-center">
+              <div className="w-7 h-7 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm mb-1.5">
+                <svg className="w-3.5 h-3.5 text-gray-300 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <span className="text-[11px] font-bold text-gray-700 dark:text-zinc-300 mb-0.5">나의 정면 전신 사진 업로드</span>
+              <span className="text-[10px] font-bold text-gray-700 dark:text-zinc-300 mb-0.5">나의 정면 전신 사진 업로드</span>
               <span className="text-[8px] text-gray-400 dark:text-zinc-500 uppercase tracking-widest">3D 아바타 자동 생성 지원</span>
             </div>
             <input
@@ -403,11 +386,22 @@ export const FittingPanel: React.FC = () => {
         )}
       </div>
 
+      {/* [3단계] 나만의 3D 마네킹 생성 수동 시작 럭셔리 버튼 */}
+      {photoFile && !currentJobId && (
+        <button
+          onClick={handleGenerate3D}
+          disabled={isLoading}
+          className="w-full py-3 bg-zinc-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 text-white dark:text-amber-950 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-lg hover:scale-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 border border-white/10 dark:border-zinc-900/10 mb-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+        >
+          <span>🧍</span> {isLoading ? '3D 아바타 생성 중...' : '나만의 3D 마네킹 생성하기'}
+        </button>
+      )}
+
       {/* ================= 우아한 엣지 디바이더 ================= */}
-      <hr className="border-gray-200 dark:border-white/5 my-4" />
+      <hr className="border-gray-200 dark:border-white/5 my-3" />
 
       {/* ================= [섹션 02: 의상 선택 및 피팅 시작] ================= */}
-      <div className="flex flex-col gap-1 mb-4">
+      <div className="flex flex-col gap-1 mb-3">
         <div className="flex items-center gap-2">
           <span className="text-zinc-900 dark:text-white font-bold text-sm">02</span>
           <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">의류 및 가상 피팅 설정 (Clothing Selection)</span>
@@ -415,18 +409,18 @@ export const FittingPanel: React.FC = () => {
       </div>
 
       {/* 옷장 갤러리 슬라이더 */}
-      <div className="mb-4">
-        <p className="text-[9px] uppercase font-bold text-zinc-400 mb-2 tracking-wider">나의 옷장 갤러리 (My Wardrobe)</p>
+      <div className="mb-3">
+        <p className="text-[9px] uppercase font-bold text-zinc-400 mb-1.5 tracking-wider">나의 옷장 갤러리 (My Wardrobe)</p>
         <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
           {isWardrobeLoading ? (
             Array(3).fill(0).map((_, i) => (
-              <div key={i} className="w-14 h-14 shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-800 animate-pulse"></div>
+              <div key={i} className="w-12 h-12 shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-800 animate-pulse"></div>
             ))
           ) : (
             wardrobeItems.map(item => (
               <button 
                 key={item.id} 
-                className={`w-14 h-14 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${clothingPreviewUrl === item.imageUrl ? 'border-amber-500 scale-105' : 'border-transparent hover:border-gray-300 dark:hover:border-zinc-700'}`}
+                className={`w-12 h-12 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${clothingPreviewUrl === item.imageUrl ? 'border-amber-500 scale-105' : 'border-transparent hover:border-gray-300 dark:hover:border-zinc-700'}`}
                 onClick={() => handleSelectWardrobeItem(item.imageUrl)}
               >
                 <img src={item.imageUrl} alt="Wardrobe" className="w-full h-full object-cover" />
@@ -436,10 +430,10 @@ export const FittingPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 피팅 의상 업로드 드롭존 (옷이 더욱 널찍하고 풍성하게 보이도록 aspect-[1/1] 정사각형 비율로 확대 적용) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-4 group flex items-center justify-center transition-colors duration-500">
+      {/* 피팅 의상 업로드 드롭존 (시원한 시각화 보장을 위해 220px~260px로 대폭 확대) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-3 group flex items-center justify-center transition-colors duration-500 flex-shrink-0 min-h-[220px] max-h-[260px]">
         {clothingPreviewUrl ? (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full flex items-center justify-center">
             <img src={clothingPreviewUrl} alt="Clothing Upload" className={`w-full h-full object-contain p-2 transition-opacity duration-300 ${isRemovingBg ? 'opacity-30 grayscale' : 'opacity-100'}`} />
             
             {/* Elegant Circular X Delete Button */}
@@ -450,7 +444,7 @@ export const FittingPanel: React.FC = () => {
                   e.preventDefault();
                   handleClearClothing();
                 }}
-                className="absolute top-3 right-3 z-30 p-2 bg-black/60 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
+                className="absolute top-2 right-2 z-30 p-1.5 bg-black/60 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
                 title="Delete clothing selection"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -461,16 +455,16 @@ export const FittingPanel: React.FC = () => {
 
             {isRemovingBg && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white pointer-events-none gap-1.5">
-                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                 <span className="text-[10px] font-bold tracking-widest">배경(누끼) 제거 및 저장 중...</span>
+                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                 <span className="text-[9px] font-bold tracking-widest">누끼(배경) 제거 중...</span>
               </div>
             )}
           </div>
         ) : (
           <>
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors pointer-events-none">
-              <span className="text-2xl mb-1 grayscale opacity-50 dark:opacity-30">➕</span>
-              <span className="text-[10px] font-medium text-center px-4">새로운 피팅용 의상 업로드<br/>(배경 자동 제거)</span>
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors pointer-events-none p-3 text-center">
+              <span className="text-xl mb-1 grayscale opacity-50 dark:opacity-30">➕</span>
+              <span className="text-[9px] font-medium leading-tight">새로운 피팅용 의상 업로드<br/>(배경 자동 제거)</span>
             </div>
             <input
               type="file"
@@ -487,13 +481,13 @@ export const FittingPanel: React.FC = () => {
       <button
         onClick={handleGenerateVTON}
         disabled={(!photoFile && !selectedBaseModel) || !clothingFile || isLoading}
-        className="w-full py-3.5 bg-gray-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 disabled:bg-gray-200 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-white/20 text-white dark:text-amber-950 text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-gray-900/20 active:scale-[0.98] mb-12"
+        className="w-full py-3 bg-gray-900 dark:bg-amber-500 hover:bg-black dark:hover:bg-amber-400 disabled:bg-gray-200 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-white/20 text-white dark:text-amber-950 text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md shadow-gray-900/20 active:scale-[0.98] mb-6 flex-shrink-0"
       >
         {isLoading ? '연산 처리 중...' : '가상 피팅 시작 (Start Fitting)'}
       </button>
 
       {clothingPreviewUrl && (
-        <button onClick={handleClearClothing} className="mt-[-20px] mb-8 text-[10px] text-gray-400 hover:text-red-400 transition-colors self-center">
+        <button onClick={handleClearClothing} className="mt-[-12px] mb-4 text-[9px] text-gray-400 hover:text-red-400 transition-colors self-center flex-shrink-0">
           선택된 의상 취소하기
         </button>
       )}

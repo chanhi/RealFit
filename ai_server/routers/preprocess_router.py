@@ -10,13 +10,14 @@ garment_service = GarmentService()
 # 간단한 전처리용 임시 스키마
 class PreprocessRequest(BaseModel):
     image_url: str
+    height: float = 175.0
 
 @router.post("/human")
 async def preprocess_human(request: PreprocessRequest):
     """사용자 전신 이미지를 받아 마네킹 이미지와 매쉬(Mesh) 데이터를 추출합니다."""
     try:
         # 기존 HumanService 로직 호출
-        result = human_service.process(request.image_url)
+        result = human_service.process(request.image_url, request.height)
         return {
             "status": "success",
             "data": result
