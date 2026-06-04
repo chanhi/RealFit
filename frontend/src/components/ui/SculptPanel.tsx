@@ -77,33 +77,95 @@ export const SculptPanel: React.FC = () => {
               </button>
             </div>
             
-            <div className="mb-5">
-              <div className="flex justify-between mb-2">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider">Height (Y-Axis)</label>
-                <span className="text-[10px] text-zinc-900 dark:text-zinc-300 font-mono font-bold text-right w-8">{(sculptModifiers.height * 100).toFixed(0)}%</span>
+            <div className="flex flex-col gap-4">
+              {/* 1. Height 양방향 수치 입력 조절 카드 */}
+              <div className="bg-gray-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-gray-100 dark:border-white/5 transition-colors">
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider">Height (Y-Axis)</label>
+                  
+                  {/* Premium Two-way Number Input */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-zinc-950 dark:focus-within:ring-white">
+                    <input
+                      type="number"
+                      min={(measurements.height_cm * 0.8).toFixed(1)}
+                      max={(measurements.height_cm * 1.2).toFixed(1)}
+                      step="0.1"
+                      value={(measurements.height_cm * sculptModifiers.height).toFixed(1)}
+                      onChange={(e) => {
+                        const inputCm = parseFloat(e.target.value)
+                        if (!isNaN(inputCm)) {
+                          const minCm = measurements.height_cm * 0.8
+                          const maxCm = measurements.height_cm * 1.2
+                          const clampedCm = Math.max(minCm, Math.min(maxCm, inputCm))
+                          const nextScale = clampedCm / measurements.height_cm
+                          setSculptModifier('height', parseFloat(nextScale.toFixed(3)))
+                        }
+                      }}
+                      className="w-16 text-xs text-zinc-900 dark:text-white font-mono font-bold text-right bg-transparent border-none outline-none p-0 focus:ring-0 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold dark:text-zinc-500">cm</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="range" min="0.8" max="1.2" step="0.01" 
+                    value={sculptModifiers.height} 
+                    onChange={(e) => setSculptModifier('height', parseFloat(e.target.value))}
+                    className="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
+                  />
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold w-10 text-right">
+                    {(sculptModifiers.height * 100).toFixed(0)}%
+                  </span>
+                </div>
               </div>
-              <input 
-                type="range" min="0.8" max="1.2" step="0.01" 
-                value={sculptModifiers.height} 
-                onChange={(e) => setSculptModifier('height', parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
-              />
-            </div>
-            
-            <div>
-              <div className="flex justify-between mb-2">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider">Girth / Width (X,Z-Axis)</label>
-                <span className="text-[10px] text-zinc-900 dark:text-zinc-300 font-mono font-bold text-right w-8">{(sculptModifiers.width * 100).toFixed(0)}%</span>
+
+              {/* 2. Girth / Width 양방향 수치 입력 조절 카드 */}
+              <div className="bg-gray-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-gray-100 dark:border-white/5 transition-colors">
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider">Girth / Width (X,Z-Axis)</label>
+                  
+                  {/* Premium Chest Width Two-way Number Input */}
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-lg px-2 py-1 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-zinc-950 dark:focus-within:ring-white">
+                    <input
+                      type="number"
+                      min={(measurements.chest_width_cm * 0.8).toFixed(1)}
+                      max={(measurements.chest_width_cm * 1.5).toFixed(1)}
+                      step="0.1"
+                      value={(measurements.chest_width_cm * sculptModifiers.width).toFixed(1)}
+                      onChange={(e) => {
+                        const inputCm = parseFloat(e.target.value)
+                        if (!isNaN(inputCm)) {
+                          const minCm = measurements.chest_width_cm * 0.8
+                          const maxCm = measurements.chest_width_cm * 1.5
+                          const clampedCm = Math.max(minCm, Math.min(maxCm, inputCm))
+                          const nextScale = clampedCm / measurements.chest_width_cm
+                          const roundedScale = parseFloat(nextScale.toFixed(3))
+                          setSculptModifier('width', roundedScale)
+                          setSculptModifier('depth', roundedScale)
+                        }
+                      }}
+                      className="w-16 text-xs text-zinc-900 dark:text-white font-mono font-bold text-right bg-transparent border-none outline-none p-0 focus:ring-0 focus:outline-none"
+                    />
+                    <span className="text-[10px] text-gray-400 font-bold dark:text-zinc-500">cm</span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="range" min="0.8" max="1.5" step="0.01" 
+                    value={sculptModifiers.width} 
+                    onChange={(e) => {
+                      setSculptModifier('width', parseFloat(e.target.value))
+                      setSculptModifier('depth', parseFloat(e.target.value))
+                    }}
+                    className="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
+                  />
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono font-bold w-10 text-right">
+                    {(sculptModifiers.width * 100).toFixed(0)}%
+                  </span>
+                </div>
               </div>
-              <input 
-                type="range" min="0.8" max="1.5" step="0.01" 
-                value={sculptModifiers.width} 
-                onChange={(e) => {
-                  setSculptModifier('width', parseFloat(e.target.value))
-                  setSculptModifier('depth', parseFloat(e.target.value)) // sync width and depth for realistic girth
-                }}
-                className="w-full h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-gray-900 dark:accent-white"
-              />
             </div>
             <p className="text-[9px] text-gray-400 dark:text-zinc-500 mt-4 leading-relaxed bg-gray-50 dark:bg-zinc-800/50 p-2 rounded transition-colors">
               💡 슬라이더를 움직여 3D 기본 메쉬의 형태를 수정할 수 있습니다. 변경된 체형에 맞춰 AI 사이즈 추천 결과가 실시간으로 업데이트됩니다.

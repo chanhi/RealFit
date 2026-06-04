@@ -1,6 +1,16 @@
 import React, { useRef } from 'react'
 import { useFittingStore } from '../../store/useFittingStore'
+import type { BaseModelType } from '../../store/useFittingStore'
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
+
+const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
+  { id: 'male-slim', label: '남성 슬림체형' },
+  { id: 'male-normal', label: '남성 보통체형' },
+  { id: 'male-chubby', label: '남성 건장한체형' },
+  { id: 'female-slim', label: '여성 슬림체형' },
+  { id: 'female-normal', label: '여성 보통체형' },
+  { id: 'female-chubby', label: '여성 건장한체형' },
+]
 
 export const HomePanel: React.FC = () => {
   const { 
@@ -68,19 +78,15 @@ export const HomePanel: React.FC = () => {
             <h3 className="text-2xl font-serif mb-8 text-zinc-800 dark:text-zinc-200">기본 체형 선택</h3>
             
             <div className="grid grid-cols-2 gap-4">
-              {([
-                { id: 'male-slim', label: '남성 슬림' },
-                { id: 'male-large', label: '남성 건장' },
-                { id: 'female-slim', label: '여성 슬림' },
-                { id: 'female-large', label: '여성 건장' },
-              ] as const).map((model) => (
+              {BASE_BODY_TYPES.map((model) => (
                 <button
                   key={model.id}
+                  type="button"
                   onClick={() => {
-                    setSelectedBaseModel(model.id as any);
+                    setSelectedBaseModel(model.id);
                     handleClearPhoto();
                   }}
-                  className={`relative flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-500 ${
+                  className={`relative flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all duration-500 ${
                     selectedBaseModel === model.id 
                       ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white shadow-lg' 
                       : 'bg-zinc-50 dark:bg-zinc-800/50 border-transparent text-zinc-400 dark:text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 dark:hover:text-zinc-300'

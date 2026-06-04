@@ -1,5 +1,13 @@
 import { create } from 'zustand'
 
+export type BaseModelType =
+  | 'male-slim'
+  | 'male-normal'
+  | 'male-chubby'
+  | 'female-slim'
+  | 'female-normal'
+  | 'female-chubby'
+
 export interface BodyMeasurements {
   height_cm: number;
   model_height_unit: number;
@@ -26,11 +34,7 @@ export interface WardrobeItem {
   category: string;
 }
 
-const MOCK_WARDROBE: WardrobeItem[] = [
-  { id: 'w1', imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=200&auto=format&fit=crop', category: 'top' },
-  { id: 'w2', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=200&auto=format&fit=crop', category: 'top' },
-  { id: 'w3', imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=200&auto=format&fit=crop', category: 'top' },
-];
+const MOCK_WARDROBE: WardrobeItem[] = [];
 
 export interface FittingState {
   // 1단계: 사용자 전신 사진
@@ -66,7 +70,7 @@ export interface FittingState {
   wishlistIds: string[];
 
   // 기본 체형(마네킹) 선택
-  selectedBaseModel: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null;
+  selectedBaseModel: BaseModelType | null;
 
   // 체형 조각(Sculpting) 스케일 조절자
   sculptModifiers: { width: number, height: number, depth: number };
@@ -94,7 +98,7 @@ export interface FittingState {
   resetSculptModifiers: () => void;
   toggleDarkMode: () => void;
   setCurrentJobId: (jobId: string | null) => void;
-  setSelectedBaseModel: (modelType: 'male-slim' | 'male-large' | 'female-slim' | 'female-large' | null) => void;
+  setSelectedBaseModel: (modelType: BaseModelType | null) => void;
   
   // 옷장 및 위시리스트 메서드
   fetchWardrobe: () => Promise<void>;
@@ -127,7 +131,7 @@ export const useFittingStore = create<FittingState>((set) => ({
   activeTab: '3d',
   activeTool: 'FITTING',
   selectedBaseModel: null,
-  currentPage: 'HOME',
+  currentPage: 'ABOUT',
   isDarkMode: false, // 라이트 모드 기본 시작
   savedArchives: INITIAL_ARCHIVES,
   wardrobeItems: [],
