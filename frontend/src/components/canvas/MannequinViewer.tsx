@@ -85,11 +85,15 @@ const ObjModel = ({ url }: { url: string }) => {
   return (
     <group position={[0, -targetSize / 2, 0]}>
       {/* 사용자가 조절하는 체형 변형(sculptModifiers)을 최종 스케일에 반영합니다. */}
-      <group scale={[
-        scale * sculptModifiers.width, 
-        scale * sculptModifiers.height, 
-        scale * sculptModifiers.depth
-      ]}>
+      {/* key 속성을 부여하여 스케일 변화 시 R3F가 노드를 리마운트하고 Matrix를 강제 갱신하도록 처리합니다. */}
+      <group 
+        key={`${sculptModifiers.width}-${sculptModifiers.height}-${sculptModifiers.depth}`}
+        scale={[
+          scale * sculptModifiers.width, 
+          scale * sculptModifiers.height, 
+          scale * sculptModifiers.depth
+        ]}
+      >
         <primitive 
           object={clonedObj} 
           position={[-center.x, -minY, -center.z]} 
@@ -115,15 +119,17 @@ const GlbModel = ({ url }: { url: string }) => {
 
   return (
     <Center position={[0, -0.2, 0]}>
-      <primitive 
-        object={scene} 
-        rotation={[0, -Math.PI / 2, 0]}
-        scale={[
-          autoScale * sculptModifiers.width, 
-          autoScale * sculptModifiers.height, 
-          autoScale * sculptModifiers.depth
-        ]} 
-      />
+      <group key={`${sculptModifiers.width}-${sculptModifiers.height}-${sculptModifiers.depth}`}>
+        <primitive 
+          object={scene} 
+          rotation={[0, -Math.PI / 2, 0]}
+          scale={[
+            autoScale * sculptModifiers.width, 
+            autoScale * sculptModifiers.height, 
+            autoScale * sculptModifiers.depth
+          ]} 
+        />
+      </group>
     </Center>
   )
 }

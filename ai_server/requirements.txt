@@ -1,12 +1,23 @@
+# --- Web Framework ---
 fastapi==0.109.2
 uvicorn[standard]==0.27.1
 python-multipart==0.0.9
 aiofiles==23.2.1
+
+# --- fal.ai API & Networking ---
+httpx==0.27.0
+python-dotenv==1.0.1
+fal-client==0.3.0
+
+# --- Image Processing & Background Removal (누끼) ---
 numpy==1.23.5
 opencv-python-headless==4.9.0.80
 pillow==10.2.0
 rembg[gpu]==2.0.56
 matplotlib==3.8.3
+scikit-image
+
+# --- 3D Mannequin & SMPL (4D-Humans) ---
 trimesh==4.1.8
 yacs==0.1.8
 smplx==0.1.28
@@ -14,17 +25,7 @@ einops==0.7.0
 timm
 pytorch-lightning
 pyrender
-scikit-image
 dill
 omegaconf
-# PyTorch와 PyTorch3D는 Dockerfile에서 CUDA 버전에 맞춰 직접 설치합니다.
-fal_client #테스트용
-# ==========================================
-# IDM-VTON 필수 의존성
-# ==========================================
-diffusers==0.26.3
-transformers==4.38.2
-accelerate==0.27.2
-safetensors==0.4.2
-huggingface-hub==0.22.2
 
+# PyTorch와 PyTorch3D는 Dockerfile에서 CUDA 버전에 맞춰 직접 설치합니다.
