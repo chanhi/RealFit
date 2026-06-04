@@ -1,112 +1,93 @@
-import argparse
-import torch
-from PIL import Image
 import os
+import uuid
+import shutil
+import httpx
+from pathlib import Path
+import fal_client
+from dotenv import load_dotenv
 
-# ---------------------------------------------------------
-# [주의] 아래 모듈들은 yisol/IDM-VTON 공식 Github 코드가 
-# 현재 폴더(IDM-VTON) 내에 클론되어 있어야 정상 작동합니다.
-# ---------------------------------------------------------
-try:
-    from diffusers import DDPMScheduler, AutoencoderKL
-    from transformers import (
-        CLIPImageProcessor, 
-        CLIPVisionModelWithProjection, 
-        CLIPTextModel, 
-        CLIPTextModelWithProjection, 
-        AutoTokenizer
-    )
-    from src.unet_hacked_garmnet import UNet2DConditionModel as UNet2DConditionModel_ref
-    from src.unet_hacked_tryon import UNet2DConditionModel
-    from src.tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
-except ImportError as e:
-    print(f"❌ IDM-VTON 공식 모듈을 찾을 수 없습니다: {e}")
-    print("💡 팁: 'git clone https://github.com/yisol/IDM-VTON.git'의 내부 파일들이 같은 경로에 있어야 합니다.")
-    import sys
-    sys.exit(1)
+# .env 파일에서 FAL_KEY 로드
+load_dotenv()
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--human', type=str, required=True, help='마네킹 렌더링 이미지 경로')
-    parser.add_argument('--garment', type=str, required=True, help='누끼 의류 이미지 경로')
-    parser.add_argument('--out', type=str, required=True, help='합성 결과 저장 경로')
-    args = parser.parse_args()
-
-    print("🤖 [PROD] 실제 IDM-VTON 프로덕션 모델 로딩 중 (약 16GB)...")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.float16 if device == "cuda" else torch.float32
-
-    base_path = "yisol/IDM-VTON"
-
-    try:
-        # 1. IDM-VTON 전용 커스텀 UNet 및 인코더 분리 로드
-        unet = UNet2DConditionModel.from_pretrained(base_path, subfolder="unet", torch_dtype=dtype)
-        unet.requires_grad_(False)
+class VtonService:
+    def __init__(self):
+        # 로컬 테스트 환경을 고려하여 현재 작업 디렉토리 기준으로 dummy 폴더 지정
+        # (만약 에러가 난다면 절대경로로 수정하셔도 됩니다)
+        self.base_path = Path.cwd() 
+        self.workspace_dir = self.base_path / "shared" / "dummy"
         
-        tokenizer_one = AutoTokenizer.from_pretrained(base_path, subfolder="tokenizer", use_fast=False)
-        tokenizer_two = AutoTokenizer.from_pretrained(base_path, subfolder="tokenizer_2", use_fast=False)
-        noise_scheduler = DDPMScheduler.from_pretrained(base_path, subfolder="scheduler")
+        # dummy 폴더가 없으면 자동 생성 (로컬 테스트용)
+        self.workspace_dir.mkdir(parents=True, exist_ok=True)
         
-        text_encoder_one = CLIPTextModel.from_pretrained(base_path, subfolder="text_encoder", torch_dtype=dtype)
-        text_encoder_two = CLIPTextModelWithProjection.from_pretrained(base_path, subfolder="text_encoder_2", torch_dtype=dtype)
-        image_encoder = CLIPVisionModelWithProjection.from_pretrained(base_path, subfolder="image_encoder", torch_dtype=dtype)
-        vae = AutoencoderKL.from_pretrained(base_path, subfolder="vae", torch_dtype=dtype)
+        self.mode = os.getenv("AI_MODE", "test").lower()
+
+    def vton(self, front_file_url: str, cloth_file_url: str) -> str:
+        # 1. URL에서 파일명만 추출하여 로컬(dummy) 내의 파일 절대 경로 매핑
+        front_filename = front_file_url.split("/")[-1]
+        cloth_filename = cloth_file_url.split("/")[-1]
         
-        UNet_Encoder = UNet2DConditionModel_ref.from_pretrained(base_path, subfolder="unet_encoder", torch_dtype=dtype)
-        UNet_Encoder.requires_grad_(False)
+        human_img_path = self.workspace_dir / front_filename
+        garment_img_path = self.workspace_dir / cloth_filename
 
-        # 2. Tryon 커스텀 파이프라인 조립 (기존 일반 파이프라인을 덮어씀)
-        pipe = TryonPipeline.from_pretrained(
-            base_path,
-            unet=unet,
-            vae=vae,
-            feature_extractor=CLIPImageProcessor(),
-            text_encoder=text_encoder_one,
-            text_encoder_2=text_encoder_two,
-            tokenizer=tokenizer_one,
-            tokenizer_2=tokenizer_two,
-            scheduler=noise_scheduler,
-            image_encoder=image_encoder,
-            torch_dtype=dtype,
-        )
-        pipe.unet_encoder = UNet_Encoder
-        pipe = pipe.to(device)
+        job_id = str(uuid.uuid4())[:8]
+        output_img_path = self.workspace_dir / f"{job_id}_vton_result.png"
 
-    except Exception as e:
-        print(f"❌ 모델 로드 실패: {e}")
-        return
+        # ==========================================
+        # [TEST MODE] 고속 더미 반환 모드
+        # ==========================================
+        if self.mode == "test":
+            print("⚡ [TEST MODE] AI 연산을 건너뛰고 더미 결과를 즉시 반환합니다.")
+            dummy_source = self.workspace_dir / "vton_result.png"
+            
+            if dummy_source.exists():
+                shutil.copy(dummy_source, output_img_path)
+            else:
+                shutil.copy(human_img_path, output_img_path)
+            return str(output_img_path)
+        
+        # ==========================================
+        # 🔴 [PROD MODE] fal.ai API를 통한 초고속 IDM-VTON 연산
+        # ==========================================
+        print("🚀 [PROD MODE] fal.ai API를 이용한 실제 IDM-VTON 합성을 시작합니다...")
+        
+        if not human_img_path.exists() or not garment_img_path.exists():
+            raise FileNotFoundError(f"VTON 합성 실패: 로컬 dummy 폴더에 이미지를 찾을 수 없습니다. ({front_filename}, {cloth_filename})")
 
-    print(f"🔍 실제 IDM-VTON 이미지 합성 중 ({device.upper()} 가속)...")
-    human_img = Image.open(args.human).convert("RGB")
-    garment_img = Image.open(args.garment).convert("RGB")
-    
-    # IDM-VTON 최적화 권장 해상도로 리사이징
-    target_size = (768, 1024)
-    human_img = human_img.resize(target_size)
-    garment_img = garment_img.resize(target_size)
-    
-    # ⚠️ [매우 중요] 실제 환경에서는 사람의 형체를 딴 'Agnostic Mask'와 'DensePose' 이미지가 반드시 필요합니다.
-    # 현재는 코드 구동과 에러 방지를 위해 임시로 흰색 마스크와 검은색 포즈를 넘깁니다. 
-    mask_img = Image.new("L", target_size, 255)
-    pose_img = Image.new("RGB", target_size, (0, 0, 0))
+        try:
+            # [핵심 1] 로컬 PC의 이미지를 fal.ai가 접근할 수 있도록 임시 클라우드에 업로드
+            print("📤 이미지를 fal.ai 서버로 전송 중...")
+            human_fal_url = fal_client.upload_file(str(human_img_path))
+            garment_fal_url = fal_client.upload_file(str(garment_img_path))
 
-    prompt = "photorealistic, high detail, high quality"
-    negative_prompt = "bare body, artifacts, bad anatomy, blurry, deformed, distorted, lowres, ugly"
+            # [핵심 2] fal.ai IDM-VTON API 호출 (모든 전처리 자동 수행)
+            print("⏳ fal.ai 연산 요청 중 (약 3~5초 소요)...")
+            result = fal_client.subscribe(
+                "fal-ai/idm-vton",
+                arguments={
+                    "human_image_url": human_fal_url,
+                    "garment_image_url": garment_fal_url,
+                    "description": "A photorealistic high-quality photo of a model wearing the target garment",
+                    "num_inference_steps": 30,
+                    "guidance_scale": 2.0
+                },
+                with_logs=True
+            )
+            
+            result_image_url = result['image']['url']
+            print(f"📥 연산 완료! 결과 이미지 다운로드 중: {result_image_url}")
 
-    # 합성 추론
-    output = pipe(
-        prompt=prompt,
-        negative_prompt=negative_prompt,
-        image=human_img,
-        mask_image=mask_img,
-        cloth_image=garment_img, # 의류 원본 투입
-        pose_image=pose_img,     # 일반 모델에는 없는 IDM-VTON 핵심 파라미터 (인체 곡률)
-        num_inference_steps=30,  # 프로덕션 권장 스텝 (기존 15 -> 30으로 상향)
-        guidance_scale=2.0
-    ).images[0]
+            # [핵심 3] 결과 URL의 이미지를 다시 내 로컬 dummy 폴더로 다운로드
+            with httpx.Client(timeout=60.0) as client:
+                resp = client.get(result_image_url)
+                resp.raise_for_status()
+                with open(output_img_path, "wb") as f:
+                    f.write(resp.content)
 
-    output.save(args.out)
-    print(f"🎉 성공! 실제 IDM-VTON 합성 완료: {args.out}")
+            print(f"🎉 성공! 로컬에 저장 완료: {output_img_path}")
+            
+            # 기존 로직과 동일하게 생성된 파일의 절대 경로를 반환 (Router에서 /static/ URL로 변환됨)
+            return str(output_img_path)
 
-if __name__ == '__main__':
-    main()
+        except Exception as e:
+            print(f"❌ fal.ai VTON 연산 중 에러 발생: {e}")
+            raise e
