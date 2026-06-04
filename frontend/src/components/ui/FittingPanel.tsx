@@ -24,6 +24,15 @@ const BASE_BODY_SCULPT: Record<BaseModelType, { width: number; height: number; d
   'female-chubby': { width: 1.12, height: 0.96, depth: 1.14 },
 }
 
+const BASE_MODEL_URLS: Record<BaseModelType, string> = {
+  'male-slim': '/mock/male-slim.glb',
+  'male-normal': '/mock/male-normal.glb',
+  'male-chubby': '/mock/male-chubby.glb',
+  'female-slim': '/mock/female-slim.glb',
+  'female-normal': '/mock/female-normal.glb',
+  'female-chubby': '/mock/female-chubby.glb',
+}
+
 export const FittingPanel: React.FC = () => {
   const {
     // 1단계: 마네킹/전신 사진 상태
@@ -71,9 +80,11 @@ export const FittingPanel: React.FC = () => {
     }
 
     const state = useFittingStore.getState()
-    if (state.selectedBaseModel && !state.modelUrl) {
-      // 기본 마네킹을 선택하고 넘어온 경우 실제 존재하는 더미 모델 세팅
-      setModelUrl('/static/dummy_mannequin.obj')
+    if (state.photoFile && !state.currentJobId && !state.isLoading) {
+      handleGenerate3D()
+    } else if (state.selectedBaseModel && !state.modelUrl) {
+      // 기본 마네킹을 선택하고 넘어온 경우 선택된 체형 모델 세팅
+      setModelUrl(BASE_MODEL_URLS[state.selectedBaseModel])
     }
   }, [fetchWardrobe, wardrobeItems.length])
 
@@ -91,8 +102,7 @@ export const FittingPanel: React.FC = () => {
     setSculptModifier('height', sculpt.height)
     setSculptModifier('depth', sculpt.depth)
 
-    // 3. 기본 마네킹 3D 오브젝트 주입
-    setModelUrl('/static/dummy_mannequin.obj')
+    setModelUrl(BASE_MODEL_URLS[modelId])
     showToast('🧍 선택한 기본 체형 마네킹이 아뜰리에에 적용되었습니다.')
   }
 
