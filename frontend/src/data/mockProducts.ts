@@ -154,5 +154,13 @@ export const MOCK_PRODUCTS: Product[] = [
     price: 115000,
     imageUrl: '/images/white-duffle-jacket.png',
     category: 'Outerwear'
+  },
+  {
+    id: 'p21',
+    name: 'dadjeus T-shirt',
+    brand: 'DICDER',
+    price: 11120,
+    imageUrl: '/images/cloth_test_dajus.png',
+    category: 'T-Shirts'
   }
 ];

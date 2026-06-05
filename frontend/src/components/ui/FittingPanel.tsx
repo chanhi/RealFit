@@ -3,6 +3,7 @@ import { useFittingStore } from '../../store/useFittingStore'
 import type { BaseModelType } from '../../store/useFittingStore'
 import { generate3DModel, generateVTONResult, uploadAndRemoveBackground } from '../../api'
 import { BodyTypeIcon, BODY_TYPE_COLORS } from './BodyTypeIcon'
+import { MOCK_PRODUCTS } from '../../data/mockProducts'
 
 const BASE_BODY_TYPES: { id: BaseModelType; label: string }[] = [
   { id: 'male-slim', label: '남성 슬림체형' },
@@ -21,6 +22,15 @@ const BASE_BODY_SCULPT: Record<BaseModelType, { width: number; height: number; d
   'female-slim': { width: 0.82, height: 1.02, depth: 0.84 },
   'female-normal': { width: 0.96, height: 1.0, depth: 0.96 },
   'female-chubby': { width: 1.12, height: 0.96, depth: 1.14 },
+}
+
+const BASE_MODEL_URLS: Record<BaseModelType, string> = {
+  'male-slim': '/mock/male-slim.glb',
+  'male-normal': '/mock/male-normal.glb',
+  'male-chubby': '/mock/male-chubby.glb',
+  'female-slim': '/mock/female-slim.glb',
+  'female-normal': '/mock/female-normal.glb',
+  'female-chubby': '/mock/female-chubby.glb',
 }
 
 export const FittingPanel: React.FC = () => {
@@ -51,11 +61,13 @@ export const FittingPanel: React.FC = () => {
     setLoadingStage,
     showToast,
     
-    // 옷장 데이터
+    // 옷장 및 위시리스트 데이터
     wardrobeItems,
     isWardrobeLoading,
     fetchWardrobe,
-    addWardrobeItem
+    addWardrobeItem,
+    wishlistIds,
+    setActiveTool
   } = useFittingStore()
 
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -68,9 +80,11 @@ export const FittingPanel: React.FC = () => {
     }
 
     const state = useFittingStore.getState()
-    if (state.selectedBaseModel && !state.modelUrl) {
-      // 기본 마네킹을 선택하고 넘어온 경우 실제 존재하는 더미 모델 세팅
-      setModelUrl('/static/dummy_mannequin.obj')
+    if (state.photoFile && !state.currentJobId && !state.isLoading) {
+      handleGenerate3D()
+    } else if (state.selectedBaseModel && !state.modelUrl) {
+      // 기본 마네킹을 선택하고 넘어온 경우 선택된 체형 모델 세팅
+      setModelUrl(BASE_MODEL_URLS[state.selectedBaseModel])
     }
   }, [fetchWardrobe, wardrobeItems.length])
 
@@ -88,8 +102,7 @@ export const FittingPanel: React.FC = () => {
     setSculptModifier('height', sculpt.height)
     setSculptModifier('depth', sculpt.depth)
 
-    // 3. 기본 마네킹 3D 오브젝트 주입
-    setModelUrl('/static/dummy_mannequin.obj')
+    setModelUrl(BASE_MODEL_URLS[modelId])
     showToast('🧍 선택한 기본 체형 마네킹이 아뜰리에에 적용되었습니다.')
   }
 
@@ -294,15 +307,32 @@ export const FittingPanel: React.FC = () => {
     if (clothingInputRef.current) clothingInputRef.current.value = ''
   }
 
+  // 1. 사용자가 직접 수동 업로드한 의상 (id가 'product-'로 시작하지 않고 'w'로도 시작하지 않는 커스텀 파일들)
+  const customItems = wardrobeItems.filter(item => !item.id.startsWith('product-') && !item.id.startsWith('w'))
+  
+  // 2. 위시리스트에 담긴 상품들을 피팅용 아이템 포맷으로 변환
+  const wishItems = MOCK_PRODUCTS.filter(p => wishlistIds.includes(p.id)).map(product => {
+    // 만약 사용자가 SHOP에서 'Try On'을 실행하여 누끼(배경 제거) 투명 이미지가 만들어져 있다면 그것을 우선 노출
+    const transparentItem = wardrobeItems.find(w => w.id === `product-${product.id}`)
+    return {
+      id: product.id,
+      imageUrl: transparentItem ? transparentItem.imageUrl : product.imageUrl,
+      category: 'top'
+    }
+  })
+
+  // 3. 위시리스트 상품들과 수동 업로드 의상 통합
+  const displayItems = [...customItems, ...wishItems]
+
   return (
     <div className="flex flex-col h-full p-6 text-gray-900 dark:text-zinc-100 transition-colors duration-500 overflow-y-auto">
       
       {/* ================ [헤더 타이틀 및 닫기 버튼 (4단계)] ================= */}
-      <div className="flex justify-between items-start mb-1">
+      <div className="flex justify-between items-center mb-1">
         <h2 className="font-serif text-2xl font-bold">Atelier Fitting Center</h2>
         <button 
-          onClick={() => useFittingStore.getState().setActiveTool(null)}
-          className="text-gray-400 hover:text-gray-950 dark:hover:text-white transition-colors text-lg p-1"
+          onClick={() => setActiveTool(null)}
+          className="text-gray-400 dark:text-zinc-500 hover:text-gray-950 dark:hover:text-white transition-colors w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 flex items-center justify-center font-bold"
           title="패널 닫기"
         >
           ✕
@@ -342,8 +372,8 @@ export const FittingPanel: React.FC = () => {
         })}
       </div>
 
-      {/* 내 전신 사진 업로드 드롭존 (화면 높이에 맞춰 큼직하게 300px~360px로 확대) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-4 max-w-xs mx-auto w-full shadow-inner flex-shrink-0 min-h-[300px] max-h-[360px]">
+      {/* 내 전신 사진 업로드 드롭존 (노트북 등 작은 화면에서도 세로 배치를 최적화하도록 min-h를 200px로 조율) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-800 aspect-[3/4] group flex items-center justify-center transition-colors duration-500 mb-4 max-w-xs mx-auto w-full shadow-inner flex-shrink-0 min-h-[200px] max-h-[320px]">
         {photoPreviewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img src={photoPreviewUrl} alt="Model Preview" className="w-full h-full object-contain p-2" />
@@ -411,14 +441,18 @@ export const FittingPanel: React.FC = () => {
 
       {/* 옷장 갤러리 슬라이더 */}
       <div className="mb-3">
-        <p className="text-[9px] uppercase font-bold text-zinc-400 mb-1.5 tracking-wider">나의 옷장 갤러리 (My Wardrobe)</p>
+        <p className="text-[9px] uppercase font-bold text-zinc-400 mb-1.5 tracking-wider">위시리스트 및 피팅 의상 (Wishlist & Wardrobe)</p>
         <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
           {isWardrobeLoading ? (
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="w-12 h-12 shrink-0 rounded-lg bg-gray-200 dark:bg-zinc-800 animate-pulse"></div>
             ))
+          ) : displayItems.length === 0 ? (
+            <div className="w-full py-3 text-center text-[10px] font-medium text-gray-400 dark:text-zinc-500 bg-gray-50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 tracking-tight leading-relaxed">
+              ❤️ SHOP에서 의상에 하트(위시리스트)를 담으시면 여기에 나타납니다.
+            </div>
           ) : (
-            wardrobeItems.map(item => (
+            displayItems.map(item => (
               <button 
                 key={item.id} 
                 className={`w-12 h-12 shrink-0 rounded-lg overflow-hidden border-2 transition-all ${clothingPreviewUrl === item.imageUrl ? 'border-amber-500 scale-105' : 'border-transparent hover:border-gray-300 dark:hover:border-zinc-700'}`}
@@ -431,8 +465,8 @@ export const FittingPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 피팅 의상 업로드 드롭존 (시원한 시각화 보장을 위해 220px~260px로 대폭 확대) */}
-      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-3 group flex items-center justify-center transition-colors duration-500 flex-shrink-0 min-h-[220px] max-h-[260px]">
+      {/* 피팅 의상 업로드 드롭존 (창이 작아져도 보장되도록 min-h를 140px로 유연하게 축소) */}
+      <div className="relative rounded-xl overflow-hidden bg-gray-50 dark:bg-zinc-800/30 border-2 border-dashed border-gray-200 dark:border-zinc-700 aspect-[1/1] mb-3 group flex items-center justify-center transition-colors duration-500 flex-shrink-0 min-h-[140px] max-h-[240px]">
         {clothingPreviewUrl ? (
           <div className="relative w-full h-full flex items-center justify-center">
             <img src={clothingPreviewUrl} alt="Clothing Upload" className={`w-full h-full object-contain p-2 transition-opacity duration-300 ${isRemovingBg ? 'opacity-30 grayscale' : 'opacity-100'}`} />

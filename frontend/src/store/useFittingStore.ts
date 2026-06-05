@@ -34,11 +34,7 @@ export interface WardrobeItem {
   category: string;
 }
 
-const MOCK_WARDROBE: WardrobeItem[] = [
-  { id: 'w1', imageUrl: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?q=80&w=200&auto=format&fit=crop', category: 'top' },
-  { id: 'w2', imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=200&auto=format&fit=crop', category: 'top' },
-  { id: 'w3', imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?q=80&w=200&auto=format&fit=crop', category: 'top' },
-];
+const MOCK_WARDROBE: WardrobeItem[] = [];
 
 export interface FittingState {
   // 1단계: 사용자 전신 사진
