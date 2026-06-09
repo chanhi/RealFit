@@ -29,7 +29,7 @@ class VtonService:
             else: shutil.copy(human_img_path, output_img_path)
             return str(output_img_path)
         
-        print("🚀 [PROD MODE] fal.ai API를 이용한 Cat-VTON 합성을 시작합니다...")
+        print("🚀 [PROD MODE] fal.ai API를 이용한 Nano-Banana-2 합성을 시작합니다...")
         
         if not human_img_path.exists() or not garment_img_path.exists():
             raise FileNotFoundError("VTON 합성 실패: 이미지를 찾을 수 없습니다.")
@@ -39,24 +39,31 @@ class VtonService:
             human_fal_url = fal_client.upload_file(str(human_img_path))
             garment_fal_url = fal_client.upload_file(str(garment_img_path))
 
-            print("⏳ fal.ai 연산 요청 중 (Cat-VTON)...")
-            # subscribe 대신 모든 버전에서 호환되는 강력한 run 메서드를 사용합니다.
+            print("⏳ fal.ai 연산 요청 중 (Nano-Banana-2 Edit)...")
+            
+            # 🚨 변경점: 새 API 명세에 맞춰 prompt와 image_urls 배열을 사용합니다.
             result = fal_client.run(
-                "fal-ai/cat-vton",
+                "fal-ai/nano-banana-2/edit",
                 arguments={
-                    "human_image_url": human_fal_url,
-                    "garment_image_url": garment_fal_url,
-                    "cloth_type": "upper"  # 상의(upper), 하의(lower), 전신(overall)
+                    # 옷을 입혀달라는 프롬프트를 지정합니다. (결과에 따라 영어 문구를 조금씩 튜닝하셔도 좋습니다)
+                    "prompt": "Make the mannequin wear the garment from the second image. CRITICAL: Strictly preserve the exact original body shape, size, and pose of the mannequin with absolutely zero deformation.", 
+                    "image_urls": [human_fal_url, garment_fal_url]
                 }
             )
             
-            # Cat-VTON API의 응답 구조에서 이미지 URL 추출
-            result_image_url = result.get('image', {}).get('url') 
+            # 새 모델의 응답 구조에 맞춘 이미지 추출 로직 (images 배열 또는 image 객체 대응)
+            result_image_url = None
+            if 'images' in result and len(result['images']) > 0:
+                result_image_url = result['images'][0].get('url')
+            elif 'image' in result:
+                result_image_url = result['image'].get('url')
+            elif 'url' in result: # 간혹 url 자체만 반환하는 경우
+                result_image_url = result.get('url')
             
             if not result_image_url:
                 raise ValueError(f"API 응답에서 결과를 찾을 수 없습니다. 전체 응답: {result}")
 
-            print(f"📥 연산 완료! 결과 이미지 다운로드 중...")
+            print(f"📥 연산 완료! 결과 이미지 다운로드 중: {result_image_url}")
             with httpx.Client(timeout=60.0) as client:
                 resp = client.get(result_image_url)
                 resp.raise_for_status()
@@ -67,5 +74,5 @@ class VtonService:
             return str(output_img_path)
 
         except Exception as e:
-            print(f"❌ fal.ai Cat-VTON 연산 중 에러 발생: {e}")
+            print(f"❌ fal.ai Nano-Banana-2 연산 중 에러 발생: {e}")
             raise e
