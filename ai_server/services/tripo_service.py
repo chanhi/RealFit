@@ -3,7 +3,6 @@ import shutil
 from pathlib import Path
 
 # 기존 팀원분이 작성하신 외부 API 통신 모듈을 임포트합니다.
-# (fal.py와 fal_extended.py의 통신 기능이 합쳐졌다고 가정합니다)
 from services.fal import FalService 
 
 class TripoService:
@@ -29,12 +28,11 @@ class TripoService:
             
             if dummy_glb_path.exists():
                 shutil.copy(dummy_glb_path, output_glb_path)
+                return str(output_glb_path)
             else:
-                # 더미가 없을 경우 에러를 막기 위해 빈 파일 껍데기 생성
-                print("⚠️ 경고: 더미 파일(result.glb)이 없어 빈 파일을 반환합니다.")
-                output_glb_path.touch()
-            
-            return str(output_glb_path)
+                # 더미가 없을 경우 예외 처리 (빈 파일 생성 방지)
+                print("❌ 에러: 더미 파일(result.glb)이 워크스페이스에 존재하지 않습니다.")
+                raise FileNotFoundError("테스트용 result.glb 파일이 없어 3D 생성을 진행할 수 없습니다.")
 
         # ==========================================
         # 🔴 [PROD MODE] 실제 FAL(Tripo3D) API 호출
@@ -45,16 +43,12 @@ class TripoService:
         local_image_path = self.workspace_dir / image_filename
 
         if not local_image_path.exists():
-             raise FileNotFoundError(f"3D 생성 실패: 원본 이미지를 찾을 수 없습니다. ({image_filename})")
+            raise FileNotFoundError(f"3D 생성 실패: 원본 이미지를 찾을 수 없습니다. ({image_filename})")
 
         try:
-             # Nginx 정적 URL을 통해 외부 FAL 서버가 이미지에 접근할 수 있도록 URL 재구성
-             # (localhost가 아닌, 외부 접속 가능한 도메인이나 공인 IP 필요)
-             public_image_url = f"http://nginx:80/static/{image_filename}"
-             
-             # FalService 모듈을 이용해 3D 모델을 생성하고 다운로드하여 로컬에 저장
-             result_path = self.fal_service.generate_3d_model(public_image_url, str(output_glb_path))
-             return result_path
+            # 내부 Nginx URL 대신 로컬 파일의 절대 경로를 전달 (FalService에서 업로드 수행)
+            result_path = self.fal_service.generate_3d_model(str(local_image_path), str(output_glb_path))
+            return result_path
         except Exception as e:
             print(f"❌ 3D 생성 API 호출 실패: {e}")
             raise e
